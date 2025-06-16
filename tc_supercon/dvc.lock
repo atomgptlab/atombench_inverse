@@ -44,8 +44,8 @@ stages:
     outs:
     - path: agpt_tc_supercon
       hash: md5
-      md5: fd4176d81a9430ee0204fb309fe246df.dir
-      size: 332906
+      md5: ff8b6fc9496f3492c9504c997a96c469.dir
+      size: 332930
       nfiles: 1001
   cdvae:
     cmd: bash scripts/run_cdvae_data.sh
@@ -58,20 +58,20 @@ stages:
     outs:
     - path: ../models/cdvae/data/supercon
       hash: md5
-      md5: d6c0c48ff46b968ea4293b1117826a18.dir
-      size: 916048
+      md5: e215710599d25058707f928c1005bda5.dir
+      size: 916044
       nfiles: 3
   flowmm:
     cmd: bash scripts/run_flowmm_data.sh
     deps:
     - path: scripts/run_flowmm_data.sh
       hash: md5
-      md5: 5846c493fbc6c807528ceec8870659df
-      size: 604
+      md5: a9cbaa9759e470520cea1e7ad8e36d12
+      size: 602
       isexec: true
     outs:
     - path: ../models/flowmm/data/supercon
       hash: md5
-      md5: d0560cccfcbd6f447378fc0ab33dfefa.dir
-      size: 2024420
+      md5: 951fa5db3a020393b5794e2977381fac.dir
+      size: 40616
       nfiles: 3

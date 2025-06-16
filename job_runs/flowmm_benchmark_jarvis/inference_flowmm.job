@@ -29,8 +29,12 @@ slope="$SLOPE_OF_INFERENCE_ANTI_ANNEALING"
 nvidia-smi
 cd /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/flowmm/
 bash /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/flowmm/create_env_file.sh
-python scripts_model/evaluate.py reconstruct ${ckpt} --subdir ${subdir} --inference_anneal_slope ${slope} --stage test && \
+python scripts_model/evaluate.py reconstruct ${ckpt} --subdir ${subdir} --inference_anneal_slope ${slope} --stage test --single_gpu && \
 python scripts_model/evaluate.py consolidate ${ckpt} --subdir ${subdir}
+
+echo "Done"
+
+
 
 echo "Done"
 
