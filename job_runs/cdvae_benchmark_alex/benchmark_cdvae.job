@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=cdvae_tc            
+#SBATCH --job-name=cdvae_alex            
 #SBATCH --output=/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/fl_studio.out
 #SBATCH --partition=batch
 #SBATCH --nodes=1                         
@@ -26,7 +26,7 @@ source wandb_api_key.sh
 
 echo "running python script"
 python write_benchmark.py \
-    --run_dir /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-06/supercon \
+    --run_dir /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-17/supercon \
     --use_tensor recon \
     --data_dir ../../models/cdvae/data/alexandria \
     --split    test \
