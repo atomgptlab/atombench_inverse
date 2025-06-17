@@ -23,6 +23,6 @@ stages:
       - ../models/flowmm/data/supercon:
           cache: false
   check:
-    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/supercon --flowmm-dir ../models/data/supercon --strict-order
+    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/supercon --flowmm-dir ../models/flowmm/data/supercon --strict-order
     deps:
       - scripts/checker.py

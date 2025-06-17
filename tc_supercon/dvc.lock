@@ -95,8 +95,8 @@ stages:
       isexec: true
     - path: scripts/run_atomgpt_data.sh
       hash: md5
-      md5: 04148f9ec2d438055af404c22af9443d
-      size: 278
+      md5: 430573c6bc74b983f43d25a7d4ff9f31
+      size: 288
       isexec: true
     outs:
     - path: atomgpt_data
