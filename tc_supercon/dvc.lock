@@ -50,28 +50,57 @@ stages:
   cdvae:
     cmd: bash scripts/run_cdvae_data.sh
     deps:
+    - path: scripts/data_preprocess.py
+      hash: md5
+      md5: b0262c0078d6b71f7489937c8301c166
+      size: 12805
+      isexec: true
     - path: scripts/run_cdvae_data.sh
       hash: md5
-      md5: 2baa451dd6f303ecdf26d7f0c791ec03
-      size: 466
+      md5: 81b63f24130b8ac9a01abad79ea4e577
+      size: 595
       isexec: true
     outs:
     - path: ../models/cdvae/data/supercon
       hash: md5
-      md5: e215710599d25058707f928c1005bda5.dir
-      size: 916044
+      md5: d6c0c48ff46b968ea4293b1117826a18.dir
+      size: 916048
       nfiles: 3
   flowmm:
     cmd: bash scripts/run_flowmm_data.sh
     deps:
+    - path: scripts/data_preprocess.py
+      hash: md5
+      md5: b0262c0078d6b71f7489937c8301c166
+      size: 12805
+      isexec: true
     - path: scripts/run_flowmm_data.sh
       hash: md5
-      md5: 5846c493fbc6c807528ceec8870659df
-      size: 604
+      md5: de5b191c2ada3de9985be89b9150caca
+      size: 538
       isexec: true
     outs:
     - path: ../models/flowmm/data/supercon
       hash: md5
-      md5: 76817a1a76472c14536ce94ae9428f35.dir
-      size: 2024416
+      md5: d0560cccfcbd6f447378fc0ab33dfefa.dir
+      size: 2024420
       nfiles: 3
+  atomgpt:
+    cmd: bash scripts/run_atomgpt_data.sh
+    deps:
+    - path: scripts/data_preprocess.py
+      hash: md5
+      md5: b0262c0078d6b71f7489937c8301c166
+      size: 12805
+      isexec: true
+    - path: scripts/run_atomgpt_data.sh
+      hash: md5
+      md5: 04148f9ec2d438055af404c22af9443d
+      size: 278
+      isexec: true
+    outs:
+    - path: atomgpt_data
+      hash: md5
+      md5: 05a8566e6c5d4578b218cd69f3b266f4.dir
+      size: 332906
+      nfiles: 1001
