@@ -25,7 +25,7 @@ export WABDB_DIR="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchm
 source wandb_api_key.sh
 
 echo "running inference"
-python ../../models/cdvae/scripts/evaluate.py \
+python /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/cdvae/scripts/evaluate.py \
     --model_path /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-06/alexandria \
     --tasks recon \
     --num_evals 1
