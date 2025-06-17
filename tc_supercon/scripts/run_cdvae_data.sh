@@ -2,7 +2,8 @@
 set -e
 mkdir -p ../models/cdvae/data/supercon/
 uv pip install jarvis-tools pymatgen numpy pandas tqdm
-python scripts/generate_data_cdvae.py
+python scripts/data_preprocess.py cdvae    --dataset dft_3d --output .    \
+                                           --target Tc_supercon --max-size 1000 --seed 123
 python - <<'PYCODE'
 import os
 path = "../models/cdvae/data/supercon"
