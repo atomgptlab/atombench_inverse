@@ -1,6 +1,8 @@
 #!/bin/bash
 # run data preprocessor
-python scripts/alexandria_preprocess.py flowmm --csv-files dataset1.csv dataset2.csv --output . --seed 123
+python scripts/alexandria_preprocess.py flowmm \
+       --csv-files dataset1.csv dataset2.csv \
+       --output . --max-size 1000 --seed 123
 
 # move everything to the right spot
 mkdir -p /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/flowmm/data/alexandria

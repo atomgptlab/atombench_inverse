@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-mkdir -p agpt_alexandria
 uv pip install jarvis-tools==2024.4.* pymatgen numpy pandas tqdm
 export DEBUG="true"
 python scripts/alexandria_preprocess.py atomgpt \
