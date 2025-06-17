@@ -5,27 +5,34 @@ stages:
      - scripts/get_csv.sh
     outs:
      - DS-A.pk.bz2
-     - DS-B.pk.bz2	
-     - dataset1.csv	
-     - dataset2.csv	
-  agpt:
-    cmd: bash scripts/run_id_prop.sh
+     - DS-B.pk.bz2
+     - dataset1.csv
+     - dataset2.csv
+  atomgpt:
+    cmd: bash scripts/run_atomgpt_data.sh
     deps:
-      - scripts/run_id_prop.sh
+      - scripts/run_atomgpt_data.sh
+      - scripts/alexandria_preprocess.py
     outs:
-      - agpt_alexandria
+      - atomgpt_data
   cdvae:
     cmd: bash scripts/run_cdvae_data.sh
     deps:
       - scripts/run_cdvae_data.sh
+      - scripts/alexandria_preprocess.py
     outs:
       - ../models/cdvae/data/alexandria:
-          cache: false      
+          cache: false
   flowmm:
     cmd: bash scripts/run_flowmm_data.sh
     deps:
       - scripts/run_flowmm_data.sh
+      - scripts/alexandria_preprocess.py
     outs:
       - ../models/flowmm/data/alexandria:
           cache: false
+  check:
+    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/alexandria --flowmm-dir ../models/flowmm/data/alexandria --strict-order
+    deps:
+      - scripts/checker.py
 
