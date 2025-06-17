@@ -104,3 +104,12 @@ stages:
       md5: 05a8566e6c5d4578b218cd69f3b266f4.dir
       size: 332906
       nfiles: 1001
+  check:
+    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/supercon
+      --flowmm-dir ../models/flowmm/data/supercon --strict-order
+    deps:
+    - path: scripts/checker.py
+      hash: md5
+      md5: e08081859d259b50f7039cf2d00601ae
+      size: 3633
+      isexec: true
