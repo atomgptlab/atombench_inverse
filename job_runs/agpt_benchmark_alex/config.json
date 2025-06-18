@@ -1,5 +1,5 @@
 {
-    "id_prop_path":"/lab/mml/kipp/677/jarvis/rhys/benchmarks/alexandria/aatomgpt_data/id_prop.csv",
+    "id_prop_path":"/lab/mml/kipp/677/jarvis/rhys/benchmarks/alexandria/atomgpt_data/id_prop.csv",
     "prefix": "atomgpt_run",
     "model_name": "knc6/atomgpt_mistral_tc_supercon",
     "batch_size": 2,
