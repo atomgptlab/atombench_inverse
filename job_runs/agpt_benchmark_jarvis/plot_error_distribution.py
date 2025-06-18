@@ -151,7 +151,7 @@ plt.hist(
     weights=weights_x,
     label="target_gamma",
     color="tab:blue",
-    alpha=0.6,
+/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-supercon/7kectfd3/checkpoints    alpha=0.6,
 )
 plt.hist(
     y_gamma,
@@ -289,7 +289,7 @@ weights_x = np.ones_like(x_spg) / len(x_spg) * 100
 weights_y = np.ones_like(y_spg) / len(y_spg) * 100
 plt.hist(
     x_spg,
-    bins=np.arange(50, 220, 10),
+    bins=np.arange(0, 220, 10),
     weights=weights_x,
     label="target_spg",
     color="tab:blue",
@@ -297,7 +297,7 @@ plt.hist(
 )
 plt.hist(
     y_spg,
-    bins=np.arange(50, 220, 10),
+    bins=np.arange(0, 220, 10),
     weights=weights_y,
     label="predicted_spg",
     color="plum",
