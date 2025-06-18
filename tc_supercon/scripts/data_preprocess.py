@@ -55,6 +55,17 @@ from jarvis.core.atoms import Atoms
 from jarvis.io.vasp.inputs import Poscar
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from contextlib import contextmanager
+
+@contextmanager
+def _pushd(path: Path):
+    prev = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev)
+
 
 ################################################################################
 # Utility helpers
@@ -118,14 +129,14 @@ class DataPrepFactory(ABC):
     def write_poscar_files(self, df: pd.DataFrame, id_all: List[int]) -> List[str]:
         """Write POSCARs for every index in *id_all*.  Returns relative paths."""
         rel_paths: List[str] = []
-        for idx in id_all:
-            row = df.iloc[idx]
-            jid = row["material_id"]
-            atoms = row["atoms_j"]  # jarvis.core.Atoms instance
-            fname = f"{jid}.vasp"
-            fpath = self.out_dir / fname
-            Poscar(atoms).write_file(fpath)
-            rel_paths.append(fname)
+        
+        with _pushd(self.out_dir):
+            for idx in id_all:
+                row = df.iloc[idx]
+                fname = f"{row['material_id']}.vasp"
+                with open(fname, "w") as fh:
+                    fh.write(str(Poscar(row["atoms_j"])))
+                rel_paths.append(fname)
         return rel_paths
 
     @abstractmethod
