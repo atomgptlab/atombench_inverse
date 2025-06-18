@@ -2,9 +2,6 @@
 	path = models/atomgpt
 	url = git@github.com:crhysc/atomgpt.git
 	branch = main
-[submodule "models/flowmm"]
-	path = models/flowmm
-	url = git@github.com:crhysc/flowmm.git
 [submodule "models/cdvae"]
 	path = models/cdvae
 	url = git@github.com:crhysc/cdvae.git
