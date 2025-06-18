@@ -42,6 +42,16 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from jarvis.core.atoms import pmg_to_atoms, Atoms
 from jarvis.io.vasp.inputs import Poscar
 from tqdm import tqdm
+from contextlib import contextmanager
+
+@contextmanager
+def _pushd(path: Path):
+    prev = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev)
 
 ################################################################################
 # General helpers
