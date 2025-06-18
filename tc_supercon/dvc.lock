@@ -63,8 +63,8 @@ stages:
     outs:
     - path: ../models/cdvae/data/supercon
       hash: md5
-      md5: d6c0c48ff46b968ea4293b1117826a18.dir
-      size: 916048
+      md5: e215710599d25058707f928c1005bda5.dir
+      size: 916044
       nfiles: 3
   flowmm:
     cmd: bash scripts/run_flowmm_data.sh
@@ -82,8 +82,8 @@ stages:
     outs:
     - path: ../models/flowmm/data/supercon
       hash: md5
-      md5: d0560cccfcbd6f447378fc0ab33dfefa.dir
-      size: 2024420
+      md5: 76817a1a76472c14536ce94ae9428f35.dir
+      size: 2024416
       nfiles: 3
   atomgpt:
     cmd: bash scripts/run_atomgpt_data.sh
@@ -105,8 +105,9 @@ stages:
       size: 332906
       nfiles: 1001
   check:
-    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/supercon
-      --flowmm-dir ../models/flowmm/data/supercon --strict-order
+    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir 
+      ../models/cdvae/data/supercon --flowmm-dir ../models/flowmm/data/supercon 
+      --strict-order
     deps:
     - path: scripts/checker.py
       hash: md5

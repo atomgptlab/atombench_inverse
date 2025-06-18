@@ -31,7 +31,7 @@ python -u -m scripts_model.run \
              train.pl_trainer.max_epochs=10 \
              logging.val_check_interval=1 \
              train.model_checkpoints.save_last=false \
-             train.model_checkpoints.dirpath=$FLOWMM_RUN_ROOT/checkpoints
+
 
 echo "Done"
 
