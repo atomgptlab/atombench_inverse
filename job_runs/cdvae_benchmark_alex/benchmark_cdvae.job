@@ -30,7 +30,7 @@ python write_benchmark.py \
     --use_tensor recon \
     --data_dir ../../models/cdvae/data/alexandria \
     --split    test \
-    --output_csv AI-cdvae-AtomGen-Tc_supercon-dft_3d-test-rmse.csv \
+    --output_csv AI-AtomGen-prop-dft_3d-test-rmse.csv \
     --dump_json alexandria_cdvae.json
 echo "Done"
 
