@@ -5,19 +5,18 @@ from __future__ import annotations
 # Imports
 ###############################################################################
 import argparse
-import ast
 import hashlib
 import random
 import textwrap
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from jarvis.core.atoms import pmg_to_atoms, Atoms
+from jarvis.core.atoms import Atoms
+from jarvis.db.figshare import data as jarvis_data
 from tqdm import tqdm
 
 ###############################################################################
@@ -62,64 +61,59 @@ def canonicalise(pmg: Structure, symprec: float = 0.1):
 ###############################################################################
 # Dataset collection
 ###############################################################################
-def collect_records_from_csv(
-    csv_files: List[Path],
+def collect_records(
+    dataset_name: str,
     id_key: str,
     target_key: str,
-    struct_key: str,
     max_size: Optional[int],
 ) -> pd.DataFrame:
-    dfs = [pd.read_csv(p) for p in csv_files]
-    df_all = pd.concat(dfs, ignore_index=True)
+    """Download dataset, keep those with a valid *target_key*.
 
+    Returned DataFrame columns:
+        material_id, atoms_j (jarvis Atoms), cif_raw, cif_conv, spg_raw,
+        spg_conv, pretty_formula, elements (list[str]), target_key
+    """
     records: List[Dict] = []
-    for row in tqdm(df_all.itertuples(
-        index=False), total=len(df_all), desc="Parsing CSVs"):
-        if max_size is not None and len(records) >= max_size:
-            break
-
-        tgt = getattr(row, target_key, "na")
-        if tgt in (None, "na") or (isinstance(tgt, float) and np.isnan(tgt)):
+    for item in tqdm(jarvis_data(dataset_name), desc="Downloading/JARVIS"):
+        tgt = item.get(target_key, "na")
+        if tgt in ("na", None):
             continue
 
+        # Build structural objects
+        atoms_j = Atoms.from_dict(item["atoms"])
+        pmg: Structure = atoms_j.pymatgen_converter()
+
         try:
-            pmg_struct = Structure.from_dict(ast.literal_eval(getattr(row, struct_key)))
+            cif_raw, cif_conv, spg_raw, spg_conv = canonicalise(pmg)
+            if not cif_raw:  # canonicalise failed badly
+                continue
         except Exception:
             continue
-
-        try:
-            atoms = pmg_to_atoms(pmg_struct)
-        except Exception:
-            # fallback manual conversion
-            atoms = Atoms(
-                lattice=pmg_struct.lattice.matrix.tolist(),
-                elements=[str(s.specie) for s in pmg_struct],
-                coords=pmg_struct.cart_coords.tolist(),
-                coords_are_cartesian=True,
-            )
-
-        cif_raw, cif_conv, spg_raw, spg_conv = canonicalise(pmg_struct)
 
         records.append(
             {
-                "material_id": getattr(row, id_key),
-                "atoms": atoms,
+                "material_id": item[id_key],
+                "atoms_j": atoms_j,
                 "cif_raw": cif_raw,
                 "cif_conv": cif_conv,
                 "spg_raw": spg_raw,
                 "spg_conv": spg_conv,
-                "pretty_formula": pmg_struct.composition.reduced_formula,
-                "elements": [el.symbol for el in pmg_struct.species],
+                "pretty_formula": pmg.composition.reduced_formula,
+                "elements": [el.symbol for el in pmg.species],
                 target_key: tgt,
             }
         )
 
-    if not records:
-        raise RuntimeError(
-            "No valid entries collected – check column names or the max-size filter."
-        )
+        if max_size is not None and len(records) == max_size:
+            break
 
-    return pd.DataFrame(records)
+    df = pd.DataFrame(records)
+    if df.empty:
+        raise RuntimeError(
+            f"No usable entries found for dataset '{dataset_name}' with target "
+            f"'{target_key}'."
+        )
+    return df
 
 ###############################################################################
 # Tc Histogram
@@ -132,7 +126,7 @@ def create_tc_histogram(
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.hist(
         temps,
-        bins=3,
+        bins=30,
         density=False,
         cumulative=False,
         alpha=0.6,
@@ -162,15 +156,17 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     others = element_counts.iloc[25:].sum()
     if others:
         top25.loc["Other"] = others
-
+    (output_dir / "element_counts.csv").parent.mkdir(parents=True, exist_ok=True)
+    top25.to_csv(output_dir / "element_counts.csv", header=["count"])
     counts = top25.values
-    labels = [f"{el} ({cnt})" for el, cnt in zip(top25.index, counts)]
-
-    fig, ax = plt.subplots(figsize=(6, 6))
+    labels = top25.index.tolist()
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.pie(
         counts,
-        labels=element_counts.index.to_list(),
-        shadow=True,
+        labels=labels,           # ← length now matches counts
+        labeldistance=1.3,
+	radius=0.8,
+	shadow=False,
         startangle=90,
         wedgeprops={"edgecolor": "w", "linewidth": 1},
         textprops={"fontsize": 12},
@@ -206,13 +202,13 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--test-ratio", type=float, default=0.1)
 
     return argparse.ArgumentParser(
-        prog="alexandria_preprocess",
+        prog="histogram_pie_chart.py",
         parents=[common],
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent(
             """\
-            Pre-process Alexandria CSVs into model-specific formats while
-            sharing a single deterministic train/val/test split.
+            create Tc histogram and elemental composition pie chart
+            from JARVIS tc_supercon dft_3d
             """
         ),
     )
@@ -227,17 +223,16 @@ def main(argv: Optional[List[str]] = None):
     print(f"CSV files: {', '.join(str(p) for p in csv_files)}")
 
     # 1) Collect dataset
-    df = collect_records_from_csv(
-        csv_files,
+    df = collect_records(
+        dataset_name=args.dataset,
         id_key=args.id_key,
         target_key=args.target_key,
-        struct_key=args.struct_key,
         max_size=args.max_size,
     )
-    n = len(df)
+    n_samples = len(df)
+    print(f"✓ Collected {n_samples} usable entries")
     out_dir = Path(args.output).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    print(f"✓ Collected {n} usable rows")
 
     # 2) Create Tc histogram
     create_tc_histogram(df, args.target_key, out_dir)
