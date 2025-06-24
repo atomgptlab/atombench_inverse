@@ -132,7 +132,7 @@ def create_tc_histogram(
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.hist(
         temps,
-        bins=3,
+        bins=30,
         density=False,
         cumulative=False,
         alpha=0.6,
@@ -168,11 +168,13 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     counts = top25.values
     labels = [f"{el} ({cnt})" for el, cnt in zip(top25.index, counts)]
 
-    fig, ax = plt.subplots(figsize=(6, 6))
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.pie(
         counts,
         labels=labels,           # ← length now matches counts
-        shadow=True,
+        labeldistance=1.3,
+	radius=0.8,
+	shadow=True,
         startangle=90,
         wedgeprops={"edgecolor": "w", "linewidth": 1},
         textprops={"fontsize": 12},
