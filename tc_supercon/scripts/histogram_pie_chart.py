@@ -223,7 +223,7 @@ def main(argv: Optional[List[str]] = None):
     df = collect_records(
         dataset_name=args.dataset,
         id_key=args.id_key,
-        target_key=args.target,
+        target_key=args.target_key,
         max_size=args.max_size,
     )
     n_samples = len(df)
