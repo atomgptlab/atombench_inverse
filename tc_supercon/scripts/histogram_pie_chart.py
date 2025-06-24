@@ -189,10 +189,10 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
 ###############################################################################
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--csv-files", nargs="+", required=True, help="Input CSV paths")
-    common.add_argument("--id-key", default="mat_id", help="Column with unique IDs")
+    common.add_argument("--dataset", required=True, help="JARVIS dataset name")
+    common.add_argument("--id-key", default="jid", help="Column with unique IDs")
     common.add_argument("--target", dest="target_key", 
-                        default="Tc", help="Target column")
+                        default="Tc_supercon", help="Target column")
     common.add_argument("--structure-key", dest="struct_key", default="structure",
                         help="Column that stores the pymatgen Structure dict")
     common.add_argument("--output", required=True, help="Output directory")
@@ -226,7 +226,7 @@ def main(argv: Optional[List[str]] = None):
     df = collect_records(
         dataset_name=args.dataset,
         id_key=args.id_key,
-        target_key=args.target_key,
+        target_key=args.target,
         max_size=args.max_size,
     )
     n_samples = len(df)
