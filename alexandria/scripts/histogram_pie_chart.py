@@ -162,8 +162,8 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     others = element_counts.iloc[35:].sum()
     if others:
         top35.loc["Other"] = others
-    (output_dir / "element_counts.csv").parent.mkdir(parents=True, exist_ok=True)
-    top35.to_csv(output_dir / "element_counts.csv", header=["count"])
+    (output_dir / "alex_element_counts.csv").parent.mkdir(parents=True, exist_ok=True)
+    top35.to_csv(output_dir / "alex_element_counts.csv", header=["count"])
     counts = top35.values
     labels = top35.index.tolist()
     fig, ax = plt.subplots(figsize=(10, 10))
