@@ -158,21 +158,21 @@ def create_tc_histogram(
 ###############################################################################
 def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     element_counts = df["elements"].explode().value_counts()
-    top25 = element_counts.iloc[:25].copy()
-    others = element_counts.iloc[25:].sum()
+    top35 = element_counts.iloc[:35].copy()
+    others = element_counts.iloc[35:].sum()
     if others:
-        top25.loc["Other"] = others
+        top35.loc["Other"] = others
     (output_dir / "element_counts.csv").parent.mkdir(parents=True, exist_ok=True)
-    top25.to_csv(output_dir / "element_counts.csv", header=["count"])
+    top35.to_csv(output_dir / "element_counts.csv", header=["count"])
     counts = top25.values
     labels = top25.index.tolist()
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(10, 10))
     ax.pie(
         counts,
         labels=labels,           # ← length now matches counts
         labeldistance=1.3,
-	radius=0.8,
-	shadow=True,
+	radius=1,
+	shadow=False,
         startangle=90,
         wedgeprops={"edgecolor": "w", "linewidth": 1},
         textprops={"fontsize": 12},
