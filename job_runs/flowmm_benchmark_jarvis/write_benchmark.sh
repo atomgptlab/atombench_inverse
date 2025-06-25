@@ -7,4 +7,4 @@ python inspect_pt.py \
 
 mv ../../models/flowmm/AI-AtomGen-prop-dft_3d-test-rmse.csv .
 
-python ../plot_error_distribution.py
+python ../../scripts/plot_error_distribution.py

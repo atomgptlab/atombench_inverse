@@ -114,3 +114,11 @@ stages:
       md5: e08081859d259b50f7039cf2d00601ae
       size: 3633
       isexec: true
+  charts:
+    cmd: python scripts/histogram_pie_chart.py --output . --dataset dft_3d
+    deps:
+    - path: scripts/histogram_pie_chart.py
+      hash: md5
+      md5: 646f57db01739871b69c8dd8d13e705e
+      size: 8223
+      isexec: true
