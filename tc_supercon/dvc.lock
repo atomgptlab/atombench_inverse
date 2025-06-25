@@ -105,9 +105,8 @@ stages:
       size: 332906
       nfiles: 1001
   check:
-    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir 
-      ../models/cdvae/data/supercon --flowmm-dir ../models/flowmm/data/supercon 
-      --strict-order
+    cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/supercon
+      --flowmm-dir ../models/flowmm/data/supercon --strict-order
     deps:
     - path: scripts/checker.py
       hash: md5
@@ -119,6 +118,6 @@ stages:
     deps:
     - path: scripts/histogram_pie_chart.py
       hash: md5
-      md5: 646f57db01739871b69c8dd8d13e705e
+      md5: 0e04b1f9346e0ee6a831cd38dba77f15
       size: 8223
       isexec: true
