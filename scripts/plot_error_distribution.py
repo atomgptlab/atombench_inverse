@@ -1,4 +1,5 @@
 # conda activate /lab/mml/kipp/677/jarvis/Software/microgpt310
+import os
 from pathlib import Path
 from jarvis.db.jsonutils import loadjson
 from jarvis.core.atoms import Atoms
