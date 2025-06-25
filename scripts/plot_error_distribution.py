@@ -14,6 +14,7 @@ from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from pymatgen.analysis.structure_matcher import StructureMatcher
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from jarvis.core.lattice import get_2d_lattice
 import pandas as pd
 from jarvis.io.vasp.inputs import Poscar
@@ -222,8 +223,10 @@ for i in d:
         print("different comp", comp1, comp2)
     samps_comp.append(i)
     try:
-        spg1 = a1.get_spacegroup[0]
-        spg2 = a2.get_spacegroup[0]
+        sga1 = SpacegroupAnalyzer(a1.pymatgen_converter(), symprec=0.1)
+        sga2 = SpacegroupAnalyzer(a2.pymatgen_converter(), symprec=0.1)
+        spg1 = sga1.get_space_group_number()
+        spg2 = sga2.get_space_group_number()
         x_spg.append(spg1)
         y_spg.append(spg2)
         if spg1 == spg2:
@@ -291,7 +294,7 @@ weights_x = np.ones_like(x_spg) / len(x_spg) * 100
 weights_y = np.ones_like(y_spg) / len(y_spg) * 100
 plt.hist(
     x_spg,
-    bins=np.arange(0, 220, 10),
+    bins=np.arange(0, 231, 10),
     weights=weights_x,
     label="target_spg",
     color="tab:blue",
