@@ -1,4 +1,5 @@
 # conda activate /lab/mml/kipp/677/jarvis/Software/microgpt310
+from pathlib import Path
 from jarvis.db.jsonutils import loadjson
 from jarvis.core.atoms import Atoms
 import matplotlib.pyplot as plt
@@ -240,6 +241,7 @@ for i in d:
         # print('predicted',a2,a2.density,a2.spacegroup())
     except:
         pass
+print(f'metrics_{Path(os.getcwd()).parts[-1]}.txt'}
 print("comp", len(comp), len(samps_comp), "spg", len(spg), len(samps_spg))
 print("KLD a", kl_divergence(x_a, y_a))
 print("KLD b", kl_divergence(x_b, y_b))
@@ -258,7 +260,6 @@ print("Min Max a", min(x_a), max(x_a))
 print("Min Max b", min(x_b), max(x_b))
 print("Min Max c", min(x_c), max(x_c))
 print("Min Max gamma", min(x_gamma), max(x_gamma))
-
 
 plt.subplot(the_grid[1, 2])
 print("xZ_", min(x_Z), max(x_Z))
