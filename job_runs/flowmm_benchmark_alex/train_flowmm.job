@@ -24,7 +24,7 @@ nvidia-smi
 cd /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/flowmm/
 bash /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/flowmm/create_env_file.sh
 python -u -m scripts_model.run \
-             data=supercon \
+             data=alexandria \
              model=null_params \
              hydra.run.dir=$FLOWMM_RUN_ROOT \
              train.model_checkpoints.save_top_k=1 \
