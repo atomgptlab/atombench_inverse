@@ -35,4 +35,8 @@ stages:
     cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/alexandria --flowmm-dir ../models/flowmm/data/alexandria --strict-order
     deps:
       - scripts/checker.py
+  charts:
+    cmd: python scripts/histogram_pie_chart.py --output . --csv-files *.csv
+    deps:
+      - scripts/histogram_pie_chart.py
 
