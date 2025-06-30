@@ -4,6 +4,8 @@ from __future__ import annotations
 ###############################################################################
 # Imports
 ###############################################################################
+
+import os
 import argparse
 import ast
 import hashlib
@@ -129,30 +131,35 @@ def create_tc_histogram(
 ) -> None:
     temps = df[target_key]
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(9, 9))
     ax.hist(
         temps,
         bins=30,
         density=False,
         cumulative=False,
         alpha=0.6,
-        label="Distribution of Tc in Alexandria Dataset",
     )
 
-    ax.set_xlabel("Tc")
-    ax.set_ylabel("Number of Structures")
+    ax.set_xlabel("$T_{c}$", fontsize=18)
+    ax.set_ylabel("Number of Structures", fontsize=18)
+
     ax.legend()
 
-    (output_dir / "alex_tc_histogram.pdf").with_suffix(".pdf").parent.mkdir(
+    (output_dir / "alex_tc_histogram.png").with_suffix(".png").parent.mkdir(
         parents=True, exist_ok=True
     )
+    plt.title(
+        "Distribution of $T_{c}$ in Alexandria Supercon-3D Dataset",
+        fontsize=18
+    )
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
     plt.savefig(
-        output_dir / "alex_tc_histogram.pdf",
-        format="pdf",
-        bbox_inches="tight",
+        output_dir / "alex_tc_histogram.png",
+        format="png"
+        #bbox_inches="tight",
     )
     plt.close(fig)
-
 ###############################################################################
 # Composition Pie Chart
 ###############################################################################
@@ -166,28 +173,38 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     top18.to_csv(output_dir / "alex_element_counts.csv", header=["count"])
     counts = top18.values
     labels = top18.index.tolist()
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.pie(
+    fig, ax = plt.subplots(figsize=(9, 9))
+    patches, texts, autotexts = ax.pie(
         counts,
-        labels=labels,  
-        labeldistance=1.1,
-	    autopct='%1.1f%%',
-        pctdistance=1.1,
-        radius=1,
-	    shadow=False,
+        labels=labels,
+        labeldistance=1.05,
+        autopct='%1.1f%%',
+        pctdistance=0.92,
+        radius=1.2,
+        shadow=False,
         startangle=90,
         wedgeprops={"edgecolor": "w", "linewidth": 1},
-        textprops={"fontsize": 12},
     )
-    ax.axis("equal")
 
-    (output_dir / "alex_composition_pie_chart.pdf").parent.mkdir(
+    for txt in texts + autotexts:
+        txt.set_fontsize(12)
+        txt.set_fontweight("bold")
+        txt.set_color("black")
+        txt.set_visible(True)
+
+    ax.axis("equal")
+    plt.title(
+            "Element Proportions in the Alexandria Supercon-3D Dataset",
+            fontsize=18
+    )
+
+    (output_dir / "alex_composition_pie_chart.png").parent.mkdir(
         parents=True, exist_ok=True
     )
     plt.savefig(
-        output_dir / "alex_composition_pie_chart.pdf",
-        format="pdf",
-        bbox_inches="tight",
+        output_dir / "alex_composition_pie_chart.png",
+        format="png"
+        #bbox_inches="tight",
     )
     plt.close(fig)
 
@@ -230,22 +247,32 @@ def main(argv: Optional[List[str]] = None):
     print(f"CSV files: {', '.join(str(p) for p in csv_files)}")
 
     # 1) Collect dataset
-    df = collect_records_from_csv(
-        csv_files,
-        id_key=args.id_key,
-        target_key=args.target_key,
-        struct_key=args.struct_key,
-        max_size=args.max_size,
-    )
+    if not os.path.exists('./df.pkl'):
+        df = collect_records_from_csv(
+            csv_files,
+            id_key=args.id_key,
+            target_key=args.target_key,
+            struct_key=args.struct_key,
+            max_size=args.max_size,
+        )
+        df.to_pickle('./df.pkl')
+    if os.path.exists('./df.pkl'):
+        df = pd.read_pickle('./df.pkl')
     n = len(df)
     out_dir = Path(args.output).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Collected {n} usable rows")
 
     # 2) Create Tc histogram
+    hist_path = './alex_tc_histogram.png'
+    if os.path.exists(hist_path):
+        os.remove(hist_path)
     create_tc_histogram(df, args.target_key, out_dir)
 
     # 3) Create composition pie chart
+    pie_path='./alex_composition_pie_chart.png'
+    if os.path.exists(pie_path):
+        os.remove(pie_path)
     create_composition_pie_chart(df, out_dir)
 
 
