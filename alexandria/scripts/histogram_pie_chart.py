@@ -174,7 +174,6 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
 	    autopct='%1.1f%%',
         radius=1,
 	    shadow=False,
-        labeldistance=1.1,
 	    radius=0.8,
 	    shadow=False,
         startangle=90,
