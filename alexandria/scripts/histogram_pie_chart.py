@@ -169,17 +169,14 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.pie(
         counts,
-        labels=labels,           # ← length now matches counts
-<<<<<<< HEAD
+        labels=labels,  
         labeldistance=1.3,
 	    autopct='%1.1f%%',
         radius=1,
 	    shadow=False,
-=======
         labeldistance=1.1,
-	radius=0.8,
-	shadow=False,
->>>>>>> 9fbb324 (add charts stage)
+	    radius=0.8,
+	    shadow=False,
         startangle=90,
         wedgeprops={"edgecolor": "w", "linewidth": 1},
         textprops={"fontsize": 12},
