@@ -245,7 +245,7 @@ for i in d:
         # print('predicted',a2,a2.density,a2.spacegroup())
     except:
         pass
-print(f'benchmark: metrics_{Path(os.getcwd()).parts[-1]}')
+#print(f'benchmark: metrics_{Path(os.getcwd()).parts[-1]}')
 print("comp", len(comp), len(samps_comp), "spg", len(spg), len(samps_spg))
 print("KLD a", kl_divergence(x_a, y_a))
 print("KLD b", kl_divergence(x_b, y_b))
@@ -420,3 +420,57 @@ for idx, label in enumerate(labels):
 fig.tight_layout()
 #plt.savefig("raman_pretty_distribution_plot.png")
 plt.close()
+
+metrics = {
+    "n_same_composition"   : len(comp),
+    "n_total_composition"  : len(samps_comp),
+    "n_same_spacegroup"    : len(spg),
+    "n_total_spacegroup"   : len(samps_spg),
+
+    "KLD": {
+        "a"     : kl_divergence(x_a, y_a),
+        "b"     : kl_divergence(x_b, y_b),
+        "c"     : kl_divergence(x_c, y_c),
+        "alpha" : kl_divergence(x_alpha, y_alpha),
+        "beta"  : kl_divergence(x_beta, y_beta),
+        "gamma" : kl_divergence(x_gamma, y_gamma),
+        "lat"   : kl_divergence(x_lat, y_lat),
+        "spg"   : kl_divergence(x_spg, y_spg),
+        "weight": kl_divergence(x_Z,  y_Z),
+    },
+
+    "EMD": {
+        "a"     : emd_distance(x_a, y_a),
+        "b"     : emd_distance(x_b, y_b),
+        "gamma" : emd_distance(x_gamma, y_gamma),
+        "spg"   : emd_distance(x_spg, y_spg),
+        "lat"   : emd_distance(x_lat, y_lat),
+        "weight": emd_distance(x_Z,  y_Z),
+    },
+
+    "MAE": {
+        "a"     : mean_absolute_error(x_a, y_a),
+        "b"     : mean_absolute_error(x_b, y_b),
+        "c"     : mean_absolute_error(x_c, y_c),
+        "alpha" : mean_absolute_error(x_alpha, y_alpha),
+        "beta"  : mean_absolute_error(x_beta, y_beta),
+        "gamma" : mean_absolute_error(x_gamma, y_gamma),
+    },
+
+    "ranges": {
+        "a"     : [min(x_a),     max(x_a)],
+        "b"     : [min(x_b),     max(x_b)],
+        "c"     : [min(x_c),     max(x_c)],
+        "gamma" : [min(x_gamma), max(x_gamma)],
+        "spg"   : [min(x_spg),   max(x_spg)],
+        "weight": [min(x_Z),     max(x_Z)],
+    }
+}
+
+# ── 3. choose where to write the file ──────────────────────────────────────────
+run_dir   = Path.cwd()                # current directory (job_runs/…)
+json_path = run_dir / "metrics.json"  # → job_runs/…/metrics.json
+with open(json_path, "w") as fp:
+    json.dump(metrics, fp, indent=2)
+
+print(f"✓ metrics written to {json_path.resolve()}")
