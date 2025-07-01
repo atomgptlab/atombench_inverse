@@ -5,4 +5,4 @@ for dir in */
 		python ../../scripts/plot_error_distribution.py | tail -n 30 > metrics.txt
 		cd ..
 done
-python ../scripts/text_to_csv.py
+python ../scripts/json_to_csv.py
