@@ -7,4 +7,3 @@ python inspect_pt.py \
 
 mv ../../models/flowmm/AI-AtomGen-prop-dft_3d-test-rmse.csv .
 
-#comment to test git push via PyCharm
