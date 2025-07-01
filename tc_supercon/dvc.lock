@@ -118,6 +118,6 @@ stages:
     deps:
     - path: scripts/histogram_pie_chart.py
       hash: md5
-      md5: 73fec0d057614874c5abf86f0871fc9a
-      size: 9193
+      md5: 3ad9be5d57fec20592233289ae84264f
+      size: 9727
       isexec: true

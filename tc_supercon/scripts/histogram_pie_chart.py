@@ -125,34 +125,36 @@ def create_tc_histogram(
 ) -> None:
     temps = df[target_key]
 
-    fig, ax = plt.subplots(figsize=(9, 9))
+    fig, ax = plt.subplots(
+            figsize=(11.5, 11.5),
+            constrained_layout=True
+    )
     ax.hist(
         temps,
         bins=30,
         density=False,
         cumulative=False,
-        alpha=0.6,
+        alpha=1,
     )
 
-    ax.set_xlabel("$T_{c}$", fontsize=18)
-    ax.set_ylabel("Number of Structures", fontsize=18)
-
-    ax.legend()
+    ax.set_xlabel("$T_{c}$ (K)", fontsize=30)
+    ax.set_ylabel("Number of Structures", fontsize=30)
 
     (output_dir / "jarvis_tc_histogram.png").with_suffix(".png").parent.mkdir(
         parents=True, exist_ok=True
     )
     plt.title(
-        "Distribution of $T_{c}$ in JARVIS Supercon-3D Dataset",
-        fontsize=18
+        "Distribution of $T_{c}$ in the \n JARVIS Supercon-3D Dataset",
+        fontsize=38
     )
-    plt.xticks(fontsize=15)
-    plt.yticks(fontsize=15)
+    plt.xticks(ticks=np.linspace(0,45,10), fontsize=23)
+    plt.yticks(fontsize=23)
     plt.savefig(
         output_dir / "jarvis_tc_histogram.png",
-        format="png"
+        format="png",
         #bbox_inches="tight",
     )
+    
     plt.close(fig)
 
 ###############################################################################
@@ -160,37 +162,57 @@ def create_tc_histogram(
 ###############################################################################
 def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
     element_counts = df["elements"].explode().value_counts()
-    top18 = element_counts.iloc[:18].copy()
-    others = element_counts.iloc[18:].sum()
+    top_num = 23
+    top = element_counts.iloc[:top_num].copy()
+    others = element_counts.iloc[top_num:].sum()
     if others:
-        top18.loc["Other"] = others
-    (output_dir / "element_counts.csv").parent.mkdir(parents=True, exist_ok=True)
-    top18.to_csv(output_dir / "element_counts.csv", header=["count"])
-    counts = top18.values
-    labels = top18.index.tolist()
-    fig, ax = plt.subplots(figsize=(9, 9))
+        top.loc["Other"] = others
+    (output_dir / "jarvis_element_counts.csv").parent.mkdir(parents=True, exist_ok=True)
+    top.to_csv(output_dir / "jarvis_element_counts.csv", header=["count"])
+    counts = top.values
+    labels = top.index.tolist()
+    fig, ax = plt.subplots(figsize=(7.5, 7.5))
     patches, texts, autotexts = ax.pie( 
         counts,
         labels=labels,
         labeldistance=1.05,
 	    autopct='%1.1f%%',
-        pctdistance=0.92,
-        radius=1.2,
+        pctdistance=0.8,
+        radius=1,
 	    shadow=False,
         startangle=90,
         wedgeprops={"edgecolor": "w", "linewidth": 1},
     )
 
-    for txt in texts + autotexts:
-        txt.set_fontsize(12)
+    for txt in texts:
+        txt.set_fontsize(18)
         txt.set_fontweight("bold")
         txt.set_color("black")
         txt.set_visible(True)
 
+    counter = 11
+    for pct_txt, wedge in zip(autotexts, patches):
+        if counter > 0:
+            ang = 0.5 * (wedge.theta1 + wedge.theta2)
+
+            if 90 < ang < 270:
+                ang += 180
+
+            pct_txt.set_rotation(ang)         # face the correct direction
+            pct_txt.set_rotation_mode('anchor')
+            pct_txt.set_ha('center')
+            pct_txt.set_va('center')
+            pct_txt.set_fontsize(18)          # style as you wish
+            #pct_txt.set_fontweight("bold")
+
+            counter -= 1
+        else:
+            pct_txt.set_visible(False)
+
     ax.axis("equal")
     plt.title(
-            "Number of Elements in the JARVIS Supercon-3D Dataset",
-            fontsize=18
+            "Element Proportions in the \n JARVIS Supercon-3D Dataset",
+            fontsize=30
     )
 
     (output_dir / "jarvis_composition_pie_chart.png").parent.mkdir(
@@ -201,14 +223,6 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
         format="png"
         #bbox_inches="tight",
     )
-    plt.close(fig)
-
-    plt.savefig(
-        output_dir / "jarvis_composition_pie_chart.pdf",
-        format="pdf"
-        #bbox_inches="tight",
-    )
-    plt.close(fig)
 
 ###############################################################################
 # CLI handling
