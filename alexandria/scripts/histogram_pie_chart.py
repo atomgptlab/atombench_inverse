@@ -17,10 +17,13 @@ from typing import List, Dict, Tuple, Optional
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from jarvis.core.atoms import pmg_to_atoms, Atoms
 from tqdm import tqdm
+
+mpl.rcParams['font.family']    = 'serif'
 
 ###############################################################################
 # General helpers
