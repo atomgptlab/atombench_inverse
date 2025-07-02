@@ -252,14 +252,14 @@ for i in d:
     except:
         pass
 
-average_lattice_params_kld = statistics.mean(
+average_lattice_params_kld = statistics.mean([
     kl_divergence(x_a, y_a),
     kl_divergence(x_b, y_b),
     kl_divergence(x_c, y_c),
     kl_divergence(x_alpha, y_alpha),
     kl_divergence(x_beta, y_beta),
     kl_divergence(x_gamma, y_gamma),
-)
+])
 
 #print(f'benchmark: metrics_{Path(os.getcwd()).parts[-1]}')
 print("comp", len(comp), len(samps_comp), "spg", len(spg), len(samps_spg))
