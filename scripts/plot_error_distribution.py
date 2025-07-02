@@ -6,13 +6,17 @@ from jarvis.db.jsonutils import loadjson
 from jarvis.core.atoms import Atoms
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error
-import numpy as np
 from scipy.special import rel_entr
+import statistics
 from scipy.stats import wasserstein_distance
 from scipy import stats
 import numpy as np
 from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
+
+import matplotlib as mpl
+mpl.rcParams['font.family']    = 'serif'
+
 from matplotlib.gridspec import GridSpec
 from pymatgen.analysis.structure_matcher import StructureMatcher
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
@@ -24,6 +28,7 @@ plt.rcParams.update({"font.size": 18})
 fig = plt.figure(figsize=(14, 8))
 # plt.figure(figsize=(16,14))
 
+mpl.rcParams['font.family']    = 'serif'
 
 def emd_distance(p, q, bins=None):
     """
@@ -246,8 +251,19 @@ for i in d:
         # print('predicted',a2,a2.density,a2.spacegroup())
     except:
         pass
+
+average_lattice_params_kld = statistics.mean(
+    kl_divergence(x_a, y_a),
+    kl_divergence(x_b, y_b),
+    kl_divergence(x_c, y_c),
+    kl_divergence(x_alpha, y_alpha),
+    kl_divergence(x_beta, y_beta),
+    kl_divergence(x_gamma, y_gamma),
+)
+
 #print(f'benchmark: metrics_{Path(os.getcwd()).parts[-1]}')
 print("comp", len(comp), len(samps_comp), "spg", len(spg), len(samps_spg))
+print("average lattice params KLD", average_lattice_params_kld)
 print("KLD a", kl_divergence(x_a, y_a))
 print("KLD b", kl_divergence(x_b, y_b))
 print("KLD c", kl_divergence(x_c, y_c))
@@ -337,7 +353,19 @@ plt.xlabel("Bravais lattice")
 plt.title("(e)")
 
 plt.tight_layout()
-plt.savefig("distribution.pdf")
+bnchmk_name_dict = {
+    "agpt_benchmark_alex": "AtomGPT Alexandria",
+    "agpt_benchmark_jarvis": "AtomGPT JARVIS",
+    "cdvae_benchmark_alex": "CDVAE Alexandria",
+    "cdvae_benchmark_jarvis": "CDVAE JARVIS",
+    "flowmm_benchmark_alex": "FlowMM Alexandria",
+    "flowmm_benchmark_jarvis": "FlowMM JARVIS"
+}
+fig.subplots_adjust(top=0.88)
+plt.suptitle(bnchmk_name_dict[Path(os.getcwd()).parts[-1]],
+          fontsize=30
+)
+plt.savefig("distribution.png", format='png')
 plt.close()
 
 
@@ -430,6 +458,7 @@ metrics = {
     "n_total_spacegroup"   : len(samps_spg),
 
     "KLD": {
+        "average_lat_params" : average_lattice_params_kld,
         "a"     : kl_divergence(x_a, y_a),
         "b"     : kl_divergence(x_b, y_b),
         "c"     : kl_divergence(x_c, y_c),
