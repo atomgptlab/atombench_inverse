@@ -1,7 +1,7 @@
 {
     "id_prop_path":"/lab/mml/kipp/677/jarvis/rhys/benchmarks/tc_supercon/atomgpt_data/id_prop.csv",
     "prefix": "atomgpt_run",
-    "model_name": "knc6/atomgpt_mistral_tc_supercon",
+    "model_name": "unsloth/mistral-7b-bnb-4bit",
     "batch_size": 2,
     "num_epochs": 2,
     "logging_steps": 1,
