@@ -137,14 +137,14 @@ plt.hist(x_spg, bins=np.arange(0,231,10), weights=wsx, alpha=0.6, label="target_
 plt.hist(y_spg, bins=np.arange(0,231,10), weights=wsy, alpha=0.6, label="predicted_spg")
 plt.ylabel("Materials dist."); plt.xlabel("Spacegroup number"); plt.title("(d)")
 
-# ── (e) Bravais lattice bar chart ────────────────────────────────────────────
+# ── (e) Bravais lattice bar chart with numeric x-axis ────────────────────────
 plt.subplot(grid[1, 1])
 width = 0.35
 pos = np.arange(len(lat_order))
 plt.bar(pos - width/2, x_lat_counts, width, alpha=0.6, label="target_lat")
 plt.bar(pos + width/2, y_lat_counts, width, alpha=0.6, label="predicted_lat")
-plt.xticks(pos, lat_order, rotation=45, ha="right")
-plt.xlabel("Bravais lattice"); plt.ylabel("Materials count"); plt.title("(e)"); plt.legend()
+plt.xticks(pos, pos)  # numeric codes 0,1,...
+plt.xlabel("Bravais lattice (code)"); plt.ylabel("Materials count"); plt.title("(e)"); plt.legend()
 
 # ── (f) Weight histogram ────────────────────────────────────────────────────
 plt.subplot(grid[1, 2])
