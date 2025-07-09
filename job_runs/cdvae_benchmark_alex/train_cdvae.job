@@ -22,7 +22,7 @@ export HYDRA_JOBS="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_bench
 export HYDRA_FULL_ERROR="1"
 export WABDB_DIR="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/wandb_outputs"
 #export WANDB_MODE="offline"
-source wandb_api_key.sh
+source ../wandb_api_key.sh
 
 python -u -m cdvae.run data=alexandria expname=alexandria \
 	model.num_noise_level=2 \

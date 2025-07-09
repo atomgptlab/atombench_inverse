@@ -22,11 +22,11 @@ export HYDRA_JOBS="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_bench
 export HYDRA_FULL_ERROR="1"
 export WABDB_DIR="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/wandb_outputs"
 #export WANDB_MODE="offline"
-source wandb_api_key.sh
+source ../wandb_api_key.sh
 
 echo "running python script"
 python write_benchmark.py \
-    --run_dir /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-18/alexandria \
+    --run_dir /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-24/alexandria \
     --use_tensor recon \
     --data_dir ../../models/cdvae/data/alexandria \
     --split    test \

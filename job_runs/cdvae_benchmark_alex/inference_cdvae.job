@@ -22,13 +22,13 @@ export HYDRA_JOBS="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_bench
 export HYDRA_FULL_ERROR="1"
 export WABDB_DIR="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/wandb_outputs"
 #export WANDB_MODE="offline"
-source wandb_api_key.sh
+source ../wandb_api_key.sh
 
 echo "running inference"
 python /lab/mml/kipp/677/jarvis/rhys/benchmarks/models/cdvae/scripts/evaluate.py \
-    --model_path /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-18/alexandria \
+    --model_path /lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/2025-06-24/alexandria \
     --tasks recon \
-    --num_evals 1 \
-    --force_atom_types
+    --num_evals 1 #\
+    #--force_atom_types
 
 echo "Done"

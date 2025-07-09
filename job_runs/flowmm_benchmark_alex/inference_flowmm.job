@@ -12,14 +12,14 @@
 
 # setup
 source /home/crc8/miniconda3/etc/profile.d/conda.sh
-source wandb_api_key.sh
+source ../wandb_api_key.sh
 module load cuda/11.8
 conda activate flowmm
 export HYDRA_FULL_ERROR="1"
 export WABDB_DIR="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/wandb_outputs"
 export FLOWMM_RUN_ROOT="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/"
-export PATH_TO_CHECKPOINT="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-alexandria/7kectfd3/checkpoints/epoch=8-step=900.ckpt"
-export NAME_OF_SUBDIRECTORY_AT_CHECKPOINT="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-alexandria/7kectfd3/checkpoints/inferences"
+export PATH_TO_CHECKPOINT="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-alexandria/u8xsq8qk/checkpoints/epoch=8-step=7434.ckpt"
+export NAME_OF_SUBDIRECTORY_AT_CHECKPOINT="/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-alexandria/u8xsq8qk/checkpoints/inferences"
 export SLOPE_OF_INFERENCE_ANTI_ANNEALING="2.0"
 ckpt="$PATH_TO_CHECKPOINT"
 subdir="$NAME_OF_SUBDIRECTORY_AT_CHECKPOINT"
