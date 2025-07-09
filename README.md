@@ -1,7 +1,8 @@
 # benchmarks
 
-### Coming soon: CrystalGen software in github.com/atomgptlab that automates this repository!
+#### Coming soon: CrystalGen software in github.com/atomgptlab that automates benchmark experiments and crystal structure generation!
 
+## Note:
 This repository is still undergoing development. Currently, absolute paths are mostly used for sbatch scripts and other files. Soon, these will be
 updated to evironment-variable-based paths to allow for easy reproducability.
 
