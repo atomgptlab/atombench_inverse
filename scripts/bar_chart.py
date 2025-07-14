@@ -3,36 +3,30 @@ import os
 from pathlib import Path
 import sys
 
-# Force a non‐interactive backend in case you’re headless
+# Force a non-interactive backend in case you’re headless
 import matplotlib as mpl
 mpl.use('Agg')
-mpl.rcParams['font.family']    = 'serif'
+mpl.rcParams['font.family'] = 'serif'
 
 import matplotlib.pyplot as plt
-
-import numpy as np
 import pandas as pd
 
-ROOT = Path.cwd()  # where we’re running from
+ROOT = Path.cwd()
 print(f"DEBUG: Running script in {ROOT}", file=sys.stderr)
 
+# ───────────────────────── ingest metrics ─────────────────────────
 rows = []
-
 for subdir in sorted(ROOT.iterdir()):
     if not subdir.is_dir():
         continue
-
-    metrics_fp = subdir / "metrics.json"
-    if not metrics_fp.is_file():
+    mfp = subdir / "metrics.json"
+    if not mfp.is_file():
         print(f"⚠️  no metrics.json in {subdir.name} – skipped", file=sys.stderr)
         continue
-
-    with metrics_fp.open() as fh:
+    with mfp.open() as fh:
         rec = json.load(fh)
-
     rec.setdefault("benchmark_name", subdir.name)
-    flat = pd.json_normalize(rec, sep=".", max_level=3).iloc[0].to_dict()
-    rows.append(flat)
+    rows.append(pd.json_normalize(rec, sep=".", max_level=3).iloc[0].to_dict())
     print(f"DEBUG: Loaded metrics for {rec['benchmark_name']}", file=sys.stderr)
 
 if not rows:
@@ -40,65 +34,86 @@ if not rows:
     sys.exit(1)
 
 df = pd.DataFrame(rows)
-print("DEBUG: DataFrame shape:", df.shape, file=sys.stderr)
-print("DEBUG: DataFrame columns:", df.columns.tolist(), file=sys.stderr)
 
+# ───────────────────── pretty names / labels ─────────────────────
 bnchmk_name_dict = {
-    "agpt_benchmark_alex": "AtomGPT Alexandria",
-    "agpt_benchmark_jarvis": "AtomGPT JARVIS",
-    "cdvae_benchmark_alex": "CDVAE Alexandria",
+    "agpt_benchmark_alex":    "AtomGPT Alexandria",
+    "agpt_benchmark_jarvis":  "AtomGPT JARVIS",
+    "cdvae_benchmark_alex":   "CDVAE Alexandria",
     "cdvae_benchmark_jarvis": "CDVAE JARVIS",
-    "flowmm_benchmark_alex": "FlowMM Alexandria",
-    "flowmm_benchmark_jarvis": "FlowMM JARVIS"
+    "flowmm_benchmark_alex":  "FlowMM Alexandria",
+    "flowmm_benchmark_jarvis":"FlowMM JARVIS"
 }
 
-col_map = {
-    'KLD.a': r'$a$',
-    'KLD.b': r'$b$',
-    'KLD.c': r'$c$',
-    'KLD.alpha': r'$\alpha$',
-    'KLD.beta': r'$\beta$',
-    'KLD.gamma': r'$\gamma$'
+ax_label_map = {
+    'a':     r'$a$',
+    'b':     r'$b$',
+    'c':     r'$c$',
+    'alpha': r'$\alpha$',
+    'beta':  r'$\beta$',
+    'gamma': r'$\gamma$'
 }
 
-if "benchmark_name" in df.columns:
-    cols = ["benchmark_name"] + [c for c in df.columns if c != "benchmark_name"]
-    df = df[cols]
+def style_axes(ax, ylabel, title):
+    ax.set_xlabel('', fontsize=16)
+    ax.set_ylabel(ylabel, fontsize=16)
+    ax.set_title(title, fontsize=22)
+    ax.legend(title='Lattice Parameter', title_fontsize=15, fontsize=15)
+    plt.xticks(rotation=30, ha='right', fontsize=13)
+    plt.yticks(fontsize=15)
+    plt.tight_layout()
+
+# ───────────────────────────── KLD plot ────────────────────────────
+kld_cols = [f'KLD.{k}' for k in ax_label_map]
+if any(c not in df.columns for c in kld_cols):
+    print("ERROR: Missing KLD columns", file=sys.stderr); sys.exit(1)
+
+kld_df = (df.set_index('benchmark_name')[kld_cols]
+            .rename(index=bnchmk_name_dict)
+            .rename(columns=lambda c: ax_label_map[c.split('.')[-1]]))
+
+fig, ax = plt.subplots(figsize=(10, 8))
+kld_df.plot(kind='bar', edgecolor='k', ax=ax)
+style_axes(ax, 'KL Divergence (Nats)',
+           'KL Divergence of Predicted vs. Target\nLattice-Parameter Distributions')
+plt.savefig(ROOT / 'comparison_bar_chart.png', dpi=300)
+plt.close(fig)
+
+# ───────────────────────────── MAE plots ───────────────────────────
+mae_candidates = [
+    [f'MAE.average_mae.{k}' for k in ax_label_map],
+    [f'MAE.{k}' for k in ax_label_map]
+]
+for cand in mae_candidates:
+    if all(col in df.columns for col in cand):
+        mae_cols = cand; break
 else:
-    print("ERROR: 'benchmark_name' column missing", file=sys.stderr)
-    sys.exit(1)
+    print("ERROR: Could not find MAE columns", file=sys.stderr); sys.exit(1)
 
-params = ['KLD.a','KLD.b','KLD.c','KLD.alpha','KLD.beta','KLD.gamma']
-missing = [p for p in params if p not in df.columns]
-if missing:
-    print("ERROR: Missing metric columns:", missing, file=sys.stderr)
-    sys.exit(1)
+mae_df = (df.set_index('benchmark_name')[mae_cols]
+            .rename(index=bnchmk_name_dict)
+            .rename(columns=lambda c: ax_label_map[c.split('.')[-1]]))
 
-plot_df = df.set_index('benchmark_name')[params].rename(index=bnchmk_name_dict).rename(columns=col_map)
-print("DEBUG: plot_df shape:", plot_df.shape, file=sys.stderr)
-print("DEBUG: plot_df head:\n", plot_df.head(), file=sys.stderr)
+length_cols = [ax_label_map[k] for k in ('a', 'b', 'c')]
+angle_cols  = [ax_label_map[k] for k in ('alpha', 'beta', 'gamma')]
 
-ax = plot_df.plot(
-    kind='bar',
-    figsize=(10, 8),
-    edgecolor='k'
-)
+# ----- a, b, c -----
+fig_len, ax_len = plt.subplots(figsize=(10, 8))
+mae_df[length_cols].plot(kind='bar', edgecolor='k', ax=ax_len)
+style_axes(ax_len, 'Mean Absolute Error (Å)',
+           'Mean Absolute Error – Lattice Lengths (Å)')
+plt.savefig(ROOT / 'mae_bar_chart_abc.png', dpi=300)
+plt.close(fig_len)
 
-ax.set_xlabel('', fontsize=16)
-ax.set_ylabel('KL Divergence (Nats)', fontsize=16)
-ax.set_title('KL Divergence of Predicted vs. \n Target Lattice Parameter Distributions',
-             fontsize=22)
-ax.legend(title='Lattice Parameter',
-          title_fontsize=15,
-          fontsize=15
-)
+# ----- α, β, γ -----
+fig_ang, ax_ang = plt.subplots(figsize=(10, 8))
+mae_df[angle_cols].plot(kind='bar',
+                        edgecolor='k',
+                        color=['red', 'purple', 'brown'],   # ← the new colors
+                        ax=ax_ang)
+style_axes(ax_ang, 'Mean Absolute Error (°)',
+           'Mean Absolute Error – Lattice Angles (°)')
+plt.savefig(ROOT / 'mae_bar_chart_angles.png', dpi=300)
+plt.close(fig_ang)
 
-plt.xticks(rotation=30, ha='right', fontsize=13)
-plt.yticks(fontsize=15)
-plt.tight_layout()
-
-out_path = ROOT / 'comparison_bar_chart.png'
-print(f"DEBUG: Saving figure to {out_path}", file=sys.stderr)
-plt.savefig(out_path, dpi=300)
-# plt.show()  # removed to avoid hanging
-print("DEBUG: Done.", file=sys.stderr)
+print("DEBUG: All done.", file=sys.stderr)
