@@ -4,12 +4,20 @@
 
 ![Poster](poster.png)
 
+## Install dependencies
+'''bash
+git submodule update --init --recursive
+conda install -n base -c conda-forge mamba
+pip install uv dvc snakemake
+'''
+
 ## Compute benchmarks
-1) Run 'git submodule update --init --recursive'
-2) Run 'conda install -n base -c conda-forge mamba'
-3) Run 'pip install uv dvc snakemake'
-4) Populate 'scripts/wandb_api_key.sh' with a valid wandb_api_key
-5) Run 'snakemake all --cores all'
+First, populate 'scripts/wandb_api_key.sh' with a valid wandb_api_key
+
+Then, run this command to automatically recompute benchmarks, metrics, and figures:
+'''bash
+snakemake all --cores all
+'''
 
 ## Installation & Usage Tutorials
 ### AtomGPT
