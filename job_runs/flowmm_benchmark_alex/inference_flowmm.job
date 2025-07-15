@@ -11,14 +11,14 @@
 
 # setup
 source "$CONDA_EXECUTABLE"
-source ../../scripts/wandb_api_key.sh
+source scripts/wandb_api_key.sh
 module load cuda/11.8
 conda activate flowmm
 export HYDRA_FULL_ERROR="1"
-export WABDB_DIR="./outputs/wandb_outputs"
-export FLOWMM_RUN_ROOT="./outputs/"
-export PATH_TO_CHECKPOINT="./outputs/rfmcsp-conditional-*/????????/checkpoints/epoch=*.ckpt"
-export NAME_OF_SUBDIRECTORY_AT_CHECKPOINT="./outputs/rfmcsp-conditional-*/????????/checkpoints/inferences"
+export WABDB_DIR="job_runs/flowmm_benchmark_alex/outputs/wandb_outputs"
+export FLOWMM_RUN_ROOT="job_runs/flowmm_benchmark_alex/outputs/"
+export PATH_TO_CHECKPOINT="job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-*/????????/checkpoints/epoch=*.ckpt"
+export NAME_OF_SUBDIRECTORY_AT_CHECKPOINT="job_runs/flowmm_benchmark_alex/outputs/rfmcsp-conditional-*/????????/checkpoints/inferences"
 export SLOPE_OF_INFERENCE_ANTI_ANNEALING="2.0"
 ckpt="$PATH_TO_CHECKPOINT"
 subdir="$NAME_OF_SUBDIRECTORY_AT_CHECKPOINT"

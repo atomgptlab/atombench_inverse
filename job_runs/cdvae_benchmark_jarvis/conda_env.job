@@ -7,6 +7,6 @@
 
 source "$CONDA_EXECUTABLE"
 
-bash create_conda_env.sh
+bash job_runs/cdvae_benchmark_jarviscreate_conda_env.sh
 
 

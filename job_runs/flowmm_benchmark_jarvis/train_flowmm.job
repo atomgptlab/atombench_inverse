@@ -12,16 +12,16 @@
 
 # setup
 source "$CONDA_EXECUTABLE"
-source ../../scripts/wandb_api_key.sh
+source scripts/wandb_api_key.sh
 module load cuda/11.8
 conda activate flowmm
 export HYDRA_FULL_ERROR="1"
-export WABDB_DIR="./outputs/wandb_outputs"
-export FLOWMM_RUN_ROOT="./outputs/"
+export WABDB_DIR="job_runs/flowmm_benchmark_jarvis/outputs/wandb_outputs"
+export FLOWMM_RUN_ROOT="job_runs/flowmm_benchmark_jarvis/outputs/"
 
 # commands
 nvidia-smi
-cd ../../models/flowmm/
+cd models/flowmm/
 bash create_env_file.sh
 python -u -m scripts_model.run \
              data=jarvis \

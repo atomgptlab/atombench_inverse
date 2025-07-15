@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ../../models/cdvae
+cd models/cdvae
 
 mamba env create -f env.yml -y
 source "$CONDA_EXECUTABLE"

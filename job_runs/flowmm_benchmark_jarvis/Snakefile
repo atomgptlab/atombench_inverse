@@ -3,7 +3,7 @@ rule train_flowmm_jarvis:
         touch("flowmm_benchmark_jarvis.trained")
     input:
         "flowmm_env.created",
-        "../../tc_supercon/jarvis_data.created",
+        "jarvis_data.created",
         "flowmm_yamls.created"
     shell:
         """
@@ -15,7 +15,7 @@ rule infer_flowmm_jarvis:
         touch("flowmm_benchmark_jarvis.inferred")
     input:
         "flowmm_env.created",
-        "../../tc_supercon/jarvis_data.created",
+        "jarvis_data.created",
         "flowmm_benchmark_jarvis.trained",
         "flowmm_yamls.created"
     shell:
@@ -28,7 +28,7 @@ rule benchmark_flowmm_jarvis:
         touch("flowmm_benchmark_jarvis.final")
     input:
         "flowmm_env.created",
-        "../../tc_supercon/jarvis_data.created",
+        "jarvis_data.created",
         "flowmm_benchmark_jarvis.trained",
         "flowmm_benchmark_jarvis.inferred",
         "flowmm_yamls.created"

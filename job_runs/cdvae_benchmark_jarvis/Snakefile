@@ -14,7 +14,7 @@ rule infer_cdvae_jarvis:
         touch("cdvae_benchmark_jarvis.inferred")
     input:
         "cdvae_env.created",
-        "../../tc_supercon/jarvis_data.created",
+        "jarvis_data.created",
         "cdvae_benchmark_jarvis.trained"
     shell:
         """
@@ -26,7 +26,7 @@ rule benchmark_cdvae_jarvis:
         touch("cdvae_benchmark_jarvis.final")
     input:
         "cdvae_env.created",
-        "../../tc_supercon/jarvis_data.created",
+        "jarvis_data.created",
         "cdvae_benchmark_jarvis.trained",
         "cdvae_benchmark_jarvis.inferred"
 

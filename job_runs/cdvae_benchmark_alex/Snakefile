@@ -3,7 +3,7 @@ rule train_cdvae_alex:
         touch("cdvae_benchmark_alex.trained")
     input:
         "cdvae_env.created",
-        "../../alexandria/alex_data.created"
+        "alex_data.created"
     shell:
         """
         sbatch train_cdvae.job
@@ -14,7 +14,7 @@ rule infer_cdvae_alex:
         touch("cdvae_benchmark_alex.inferred")
     input:
         "cdvae_env.created",
-        "../../alexandria/alex_data.created",
+        "alex_data.created",
         "cdvae_benchmark_alex.trained"
     shell:
         """
@@ -26,7 +26,7 @@ rule benchmark_cdvae_alex:
         touch("cdvae_benchmark_alex.final")
     input:
         "cdvae_env.created",
-        "../../alexandria/alex_data.created",
+        "alex_data.created",
         "cdvae_benchmark_alex.trained",
         "cdvae_benchmark_alex.inferred"
 

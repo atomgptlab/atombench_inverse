@@ -3,7 +3,7 @@ rule train_atomgpt_jarvis:
         touch("agpt_benchmark_jarvis.final")
     input:
         "atomgpt_env.created",
-        "../../tc_supercon/jarvis_data.created"
+        "jarvis_data.created"
     shell:
         """
         sbatch train_atomgpt.job

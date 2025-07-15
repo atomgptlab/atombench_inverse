@@ -7,6 +7,6 @@
 
 source "$CONDA_EXECUTABLE"
 
-bash create_conda_env.sh
+bash job_runs/agpt_benchmark_alex/create_conda_env.sh
 
 

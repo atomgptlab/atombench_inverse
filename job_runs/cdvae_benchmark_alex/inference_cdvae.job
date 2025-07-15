@@ -16,16 +16,16 @@ nvidia-smi
 
 
 
-export PROJECT_ROOT="../../models/cdvae"
-export HYDRA_JOBS="./hydra_outputs"
+export PROJECT_ROOT="models/cdvae"
+export HYDRA_JOBS="job_runs/cdvae_benchmark_alex/hydra_outputs"
 export HYDRA_FULL_ERROR="1"
-export WABDB_DIR="./wandb_outputs"
+export WABDB_DIR="job_runs/cdvae_benchmark_alex/wandb_outputs"
 #export WANDB_MODE="offline"
-source ../../scripts/wandb_api_key.sh
+source scripts/wandb_api_key.sh
 
 echo "running inference"
-python ../../models/cdvae/scripts/evaluate.py \
-    --model_path ../../job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/????-??-??/alexandria \
+python models/cdvae/scripts/evaluate.py \
+    --model_path job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/????-??-??/alexandria \
     --tasks recon \
     --num_evals 1 #\
     #--force_atom_types

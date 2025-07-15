@@ -3,7 +3,7 @@ rule train_atomgpt_alex:
         touch("agpt_benchmark_alex.final")
     input:
         "atomgpt_env.created",
-        "../../alexandria/alex_data.created"
+        "alex_data.created"
     shell:
         """
         sbatch train_atomgpt.job

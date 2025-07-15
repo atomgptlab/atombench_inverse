@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ../../models/flowmm
+cd models/flowmm
 
 mamba env create -f environment.yml -y
 source "$CONDA_EXECUTABLE"

@@ -10,7 +10,6 @@ for exp in EXPS:
     module:
         name: exp
         snakefile: f"job_runs/{exp}/Snakefile"
-        prefix:   f"job_runs/{exp}"
     use rule * from exp
 
 rule all:
@@ -20,8 +19,7 @@ rule all:
 
 rule make_atomgpt_env:
     output:
-        touch("job_runs/agpt_benchmark_alex/atomgpt_env.created"),
-        touch("job_runs/agpt_benchmark_jarvis/atomgpt_env.created")
+        touch("atomgpt_env.created")
     shell:
         """
         JOBID=$(sbatch --parsable job_runs/agpt_benchmark_alex/conda_env.job)
@@ -30,8 +28,7 @@ rule make_atomgpt_env:
 
 rule make_cdvae_env:
     output:
-        touch("job_runs/cdvae_benchmark_alex/cdvae_env.created"),
-        touch("job_runs/cdvae_benchmark_jarvis/cdvae_env.created")
+        touch("cdvae_env.created")
     shell:
         """
         JOBID=$(sbatch --parsable job_runs/cdvae_benchmark_alex/conda_env.job)
@@ -40,8 +37,7 @@ rule make_cdvae_env:
 
 rule make_flowmm_env:
     output:
-        touch("job_runs/flowmm_benchmark_alex/flowmm_env.created"),
-        touch("job_runs/flowmm_benchmark_jarvis/flowmm_env.created")
+        touch("flowmm_env.created")
     shell:
         """
         JOBID=$(sbatch --parsable job_runs/flowmm_benchmark_alex/conda_env.job)
@@ -50,14 +46,11 @@ rule make_flowmm_env:
 
 rule envs_ready:
     input:
-        "job_runs/agpt_benchmark_alex/atomgpt_env.created",
-        "job_runs/agpt_benchmark_jarvis/atomgpt_env.created",
-        "job_runs/cdvae_benchmark_alex/cdvae_env.created",
-        "job_runs/cdvae_benchmark_jarvis/cdvae_env.created",
-        "job_runs/flowmm_benchmark_alex/flowmm_env.created",
-        "job_runs/flowmm_benchmark_jarvis/flowmm_env.created"
+        "atomgpt_env.created",
+        "cdvae_env.created",
+        "flowmm_env.created"
     output:
-        touch("job_runs/all_envs_ready.txt")
+        touch("all_envs_ready.txt")
     shell:
         """
         echo 'all conda envs ready' > {output}
@@ -65,9 +58,9 @@ rule envs_ready:
 
 rule make_jarvis_data:
     input:
-        "job_runs/all_envs_ready.txt"
+        "all_envs_ready.txt"
     output:
-        touch("tc_supercon/jarvis_data.created")
+        touch("jarvis_data.created")
     shell:
         """
         dvc -C tc_supercon repro
@@ -75,9 +68,9 @@ rule make_jarvis_data:
 
 rule make_alex_data:
     input:
-        "job_runs/all_envs_ready.txt"
+        "all_envs_ready.txt"
     output:
-        touch("alexandria/alex_data.created")
+        touch("alex_data.created")
     shell:
         """
         dvc -C alexandria repro
@@ -85,13 +78,11 @@ rule make_alex_data:
 
 rule make_stats_yamls:
     input:
-        "job_runs/flowmm_benchmark_alex/flowmm_env.created",
-        "job_runs/flowmm_benchmark_jarvis/flowmm_env.created",
-        "tc_supercon/jarvis_data.created",
-        "alexandria/alex_data.created"
+        "flowmm_env.created",
+        "jarvis_data.created",
+        "alex_data.created"
     output:
-        touch("job_runs/flowmm_benchmark_alex/flowmm_yamls.created"),
-        touch("job_runs/flowmm_benchmark_jarvis/flowmm_yamls.created")
+        touch("flowmm_yamls.created")
     shell:
         """
         bash job_runs/flowmm_benchmark_alex/yamls.sh

@@ -16,21 +16,21 @@ nvidia-smi
 
 
 
-export PROJECT_ROOT="../../models/cdvae"
-export HYDRA_JOBS="./hydra_outputs"
+export PROJECT_ROOT="models/cdvae"
+export HYDRA_JOBS="job_runs/cdvae_benchmark_jarvis/hydra_outputs"
 export HYDRA_FULL_ERROR="1"
-export WABDB_DIR="./wandb_outputs"
+export WABDB_DIR="job_runs/cdvae_benchmark_jarvis/wandb_outputs"
 #export WANDB_MODE="offline"
-source ../../scripts/wandb_api_key.sh
+source scripts/wandb_api_key.sh
 
 echo "running python script"
-python write_benchmark.py \
-    --run_dir ./hydra_outputs/singlerun/????-??-??/supercon \
+python job_runs/cdvae_benchmark_jarvis/write_benchmark.py \
+    --run_dir job_runs/cdvae_benchmark_jarvis/hydra_outputs/singlerun/????-??-??/supercon \
     --use_tensor recon \
-    --data_dir ../../models/cdvae/data/supercon \
+    --data_dir models/cdvae/data/supercon \
     --split    test \
-    --output_csv AI-AtomGen-prop-dft_3d-test-rmse.csv \
-    --dump_json dft_3d_Tc_supercon_cdvae.json
+    --output_csv job_runs/cdvae_benchmark_jarvis/AI-AtomGen-prop-dft_3d-test-rmse.csv \
+    --dump_json job_runs/cdvae_benchmark_jarvis/dft_3d_Tc_supercon_cdvae.json
 echo "Done"
 
 
