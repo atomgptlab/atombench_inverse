@@ -12,9 +12,6 @@ for exp in EXPS:
         snakefile: f"job_runs/{exp}/Snakefile"
         prefix:   f"job_runs/{exp}"
 
-    alias = f"{exp}_all"
-    use rule all from exp as alias
-
 rule all:
     input:
         expand("job_runs/{exp}/{exp}.final", exp=EXPS),

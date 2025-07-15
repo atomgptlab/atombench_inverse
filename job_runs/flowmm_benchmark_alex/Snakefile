@@ -1,7 +1,3 @@
-rule all:
-    input:
-        "flowmm_benchmark_alex.final"
-
 rule train_flowmm_alex:
     output:
         touch("flowmm_benchmark_alex.trained")

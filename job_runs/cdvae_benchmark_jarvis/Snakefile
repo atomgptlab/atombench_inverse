@@ -1,7 +1,3 @@
-rule all:
-    input:
-        "cdvae_benchmark_jarvis.final"
-
 rule train_cdvae_jarvis:
     output:
         touch("cdvae_benchmark_jarvis.trained")

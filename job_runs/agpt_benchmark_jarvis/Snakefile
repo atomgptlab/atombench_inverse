@@ -1,7 +1,3 @@
-rule all:
-    input:
-        "agpt_benchmark_jarvis.final"
-
 rule train_atomgpt_jarvis:
     output:
         touch("agpt_benchmark_jarvis.final")
