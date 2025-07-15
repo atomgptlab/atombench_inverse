@@ -2,7 +2,7 @@
 
 #### Coming soon: CrystalGen software in github.com/atomgptlab that automates benchmark experiments and machine learning crystal structure generation!
 
-
+![Poster](poster.png)
 
 ## Compute benchmarks
 1) Run 'git submodule update --init --recursive'
