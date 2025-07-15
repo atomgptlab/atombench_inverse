@@ -7,13 +7,17 @@ EXPS = [
     "flowmm_benchmark_jarvis"
 ]
 for exp in EXPS:
-    subworkflow exp:
-        workdir: f"job_runs/{exp}"
+    module:
+        name: exp
         snakefile: f"job_runs/{exp}/Snakefile"
+        prefix:   f"job_runs/{exp}"
+
+    alias = f"{exp}_all"
+    use rule all from exp as alias
 
 rule all:
     input:
-        [globals()[exp](f"{exp}.final") for exp in EXPS],
+        expand("job_runs/{exp}/{exp}.final", exp=EXPS),
         "charts.made"
 
 rule make_atomgpt_env:
