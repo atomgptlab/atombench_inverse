@@ -101,7 +101,7 @@ rule make_stats_yamls:
 
 rule compile_results:
     input:
-        [globals()[exp](f"{exp}/{exp}.final") for exp in EXPS]
+        expand("job_runs/{exp}/{exp}.final", exp=EXPS),
     output:
         touch("metrics.computed")
     shell:
