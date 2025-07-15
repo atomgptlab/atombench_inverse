@@ -10,7 +10,7 @@
 3) Run 'conda install -n base -c conda-forge mamba'
 4) Run 'pip install uv dvc snakemake'
 5) Populate 'scripts/wandb_api_key.sh' with a valid wandb_api_key
-6) Run 'snakemake'
+6) Run 'snakemake --cores all'
 
 ## Installation & Usage Tutorials
 ### AtomGPT
