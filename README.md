@@ -5,6 +5,9 @@
 ![Poster](poster.png)
 
 ## Install dependencies
+1) Install models as submodules
+2) Install mamba to speed up conda env creation
+3) Install base python dependencies
 ```bash
 git submodule update --init --recursive
 conda install -n base -c conda-forge mamba
@@ -12,9 +15,8 @@ pip install uv dvc snakemake
 ```
 
 ## Compute benchmarks
-First, populate 'scripts/wandb_api_key.sh' with a valid wandb_api_key
-
-Then, run this command to automatically recompute benchmarks, metrics, and figures:
+1) Navigate to [scripts/wandb_api_key.sh](scripts/wandb_api_key.sh) and populate with a valid wandb_api_key
+2) Run this command to automatically recompute benchmarks, metrics, and figures:
 ```bash
 snakemake all --cores all
 ```
