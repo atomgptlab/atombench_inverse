@@ -6,7 +6,7 @@ rule train_cdvae_alex:
         "alex_data.created"
     shell:
         """
-        sbatch --wait train_cdvae.job
+        sbatch --wait job_runs/cdvae_benchmark_alex/train_cdvae.job
         """
 
 rule infer_cdvae_alex:
@@ -18,7 +18,7 @@ rule infer_cdvae_alex:
         "cdvae_benchmark_alex.trained"
     shell:
         """
-        sbatch --wait inference_cdvae.job
+        sbatch --wait job_runs/cdvae_benchmark_alex/inference_cdvae.job
         """
 
 rule benchmark_cdvae_alex:
@@ -32,5 +32,5 @@ rule benchmark_cdvae_alex:
 
     shell:
         """
-        sbatch --wait benchmark_cdvae.job
+        sbatch --wait job_runs/cdvae_benchmark_alex/benchmark_cdvae.job
         """

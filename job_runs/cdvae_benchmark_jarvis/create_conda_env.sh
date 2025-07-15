@@ -3,7 +3,7 @@
 cd models/cdvae
 
 mamba env create -f env.yml -y
-source "$CONDA_EXECUTABLE"
+eval "$(conda shell.bash hook)"
 conda activate cdvae
 mamba install -c conda-forge "torchmetrics<0.8" --yes
 mamba install mkl=2024.0 --yes

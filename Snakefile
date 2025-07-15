@@ -105,3 +105,4 @@ rule make_bar_charts:
         touch("charts.made")
     shell:
         "cd job_runs/ && python ../scripts/bar_chart.py"
+

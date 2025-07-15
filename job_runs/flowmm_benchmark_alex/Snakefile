@@ -3,11 +3,11 @@ rule train_flowmm_alex:
         touch("flowmm_benchmark_alex.trained")
     input:
         "flowmm_env.created",
-        "../../alexandria/alex_data.created",
+        "alex_data.created",
         "flowmm_yamls.created"
     shell:
         """
-        sbatch --wait train_flowmm.job
+        sbatch --wait job_runs/flowmm_benchmark_alex/train_flowmm.job
         """
 
 rule infer_flowmm_alex:
@@ -15,12 +15,12 @@ rule infer_flowmm_alex:
         touch("flowmm_benchmark_alex.inferred")
     input:
         "flowmm_env.created",
-        "../../alexandria/alex_data.created",
+        "alex_data.created",
         "flowmm_benchmark_alex.trained",
         "flowmm_yamls.created"
     shell:
         """
-        sbatch --wait inference_flowmm.job
+        sbatch --wait job_runs/flowmm_benchmark_alex/inference_flowmm.job
         """
 
 rule benchmark_flowmm_alex:
@@ -34,5 +34,5 @@ rule benchmark_flowmm_alex:
         "flowmm_yamls.created"
     shell:
         """
-        bash write_benchmark.sh
+        bash job_runs/flowmm_benchmark_alex/write_benchmark.sh
         """

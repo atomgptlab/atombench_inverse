@@ -10,7 +10,7 @@
 #SBATCH --mem=64G                           # Total RAM for the job (8 GB)
 
 module load cuda/11.8
-source "$CONDA_EXECUTABLE"
+eval "$(conda shell.bash hook)"
 conda activate cdvae
 nvidia-smi
 

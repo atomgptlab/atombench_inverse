@@ -7,7 +7,7 @@ rule train_flowmm_jarvis:
         "flowmm_yamls.created"
     shell:
         """
-        sbatch --wait train_flowmm.job
+        sbatch --wait job_runs/flowmm_benchmark_jarvis/train_flowmm.job
         """
 
 rule infer_flowmm_jarvis:
@@ -20,7 +20,7 @@ rule infer_flowmm_jarvis:
         "flowmm_yamls.created"
     shell:
         """
-        sbatch --wait inference_flowmm.job
+        sbatch --wait job_runs/flowmm_benchmark_jarvis/inference_flowmm.job
         """
 
 rule benchmark_flowmm_jarvis:
@@ -34,5 +34,5 @@ rule benchmark_flowmm_jarvis:
         "flowmm_yamls.created"
     shell:
         """
-        bash write_benchmark.sh
+        bash job_runs/flowmm_benchmark_jarvis/write_benchmark.sh
         """

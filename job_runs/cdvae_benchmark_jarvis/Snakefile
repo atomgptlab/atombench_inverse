@@ -3,10 +3,10 @@ rule train_cdvae_jarvis:
         touch("cdvae_benchmark_jarvis.trained")
     input:
         "cdvae_env.created",
-        "../../tc_supercon/jarvis_data.created"
+        "jarvis_data.created"
     shell:
         """
-        sbatch --wait train_cdvae.job
+        sbatch --wait job_runs/cdvae_benchmark_jarvis/train_cdvae.job
         """
 
 rule infer_cdvae_jarvis:
@@ -18,7 +18,7 @@ rule infer_cdvae_jarvis:
         "cdvae_benchmark_jarvis.trained"
     shell:
         """
-        sbatch --wait inference_cdvae.job
+        sbatch --wait job_runs/cdvae_benchmark_jarvis/inference_cdvae.job
         """
 
 rule benchmark_cdvae_jarvis:
@@ -32,5 +32,5 @@ rule benchmark_cdvae_jarvis:
 
     shell:
         """
-        sbatch --wait benchmark_cdvae.job
+        sbatch --wait job_runs/cdvae_benchmark_jarvis/benchmark_cdvae.job
         """

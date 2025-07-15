@@ -3,7 +3,7 @@
 cd models/flowmm
 
 mamba env create -f environment.yml -y
-source "$CONDA_EXECUTABLE"
+eval "$(conda shell.bash hook)"
 conda activate flowmm
 pip install uv
 uv pip install "jarvis-tools>=2024.5" "pymatgen>=2024.1" pandas numpy tqdm
