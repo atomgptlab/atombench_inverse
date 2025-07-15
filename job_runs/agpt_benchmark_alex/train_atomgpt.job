@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH --job-name=agpt_alex
-#SBATCH --partition=batch
 #SBATCH --nodes=1                         
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=4                # Run 4 tasks (processes) on the node
@@ -9,6 +8,7 @@
 #SBATCH --time=08:00:00                    # Max walltime (HH:MM:SS)
 #SBATCH --mem=8G                           # Total RAM for the job (8 GB)
 
+source ~/.bashrc
 module load cuda/11.8
 eval "$(conda shell.bash hook)"
 conda activate my_atomgpt
