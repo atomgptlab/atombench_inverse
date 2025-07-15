@@ -1,6 +1,6 @@
 # benchmarks
 
-#### Coming soon: CrystalGen software in github.com/atomgptlab that automates benchmark experiments and machine learning crystal structure generation!
+#### Coming soon: CrystalGen software in [github.com/atomgptlab](www.github.com/atomgptlab) that automates benchmark experiments and machine learning crystal structure generation!
 
 ![Poster](poster.png)
 
