@@ -1,9 +1,9 @@
 rule train_atomgpt_jarvis:
     output:
-        touch("agpt_benchmark_jarvis.final")
+        touch("sentinels/agpt_benchmark_jarvis.final")
     input:
-        "atomgpt_env.created",
-        "jarvis_data.created"
+        "sentinels/atomgpt_env.created",
+        "sentinels/jarvis_data.created"
     shell:
         """
         sbatch --wait job_runs/agpt_benchmark_jarvis/train_atomgpt.job
