@@ -153,7 +153,7 @@ def create_tc_histogram(
         parents=True, exist_ok=True
     )
     plt.title(
-        "Distribution of $T_{c}$ in the \n Alexandria Supercon-3D Dataset",
+        "Distribution of $T_{c}$ in the \n Alexandria DS-A / DS-B Dataset",
         fontsize=38
     )
     plt.xticks(ticks=np.linspace(0,45,10), fontsize=23)
@@ -219,7 +219,7 @@ def create_composition_pie_chart(df: pd.DataFrame, output_dir: Path) -> None:
 
     ax.axis("equal")
     plt.title(
-            "Element Proportions in the \n Alexandria Supercon-3D Dataset",
+            "Element Proportions in the \n Alexandria DS-A / DS-B Dataset",
             fontsize=30
     )
 
