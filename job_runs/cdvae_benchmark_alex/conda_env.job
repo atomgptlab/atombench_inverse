@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH --job-name=cdvae_env            
-#SBATCH --partition=batch
 #SBATCH --nodes=1                         
 #SBATCH --time=08:00:00                    # Max walltime (HH:MM:SS)
 

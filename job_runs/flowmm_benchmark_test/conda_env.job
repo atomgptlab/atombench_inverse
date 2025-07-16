@@ -1,0 +1,13 @@
+code#!/bin/bash
+
+#SBATCH --job-name=flow_env            
+#SBATCH --output=/lab/mml/kipp/677/jarvis/rhys/benchmarks/job_runs/flowmm_benchmark_jarvis/fl_studio.out
+#SBATCH --partition=batch
+#SBATCH --nodes=1                         
+#SBATCH --time=24:00:00                    # Max walltime (HH:MM:SS)
+
+source /home/crc8/miniconda3/etc/profile.d/conda.sh
+
+bash create_conda_env.sh
+
+

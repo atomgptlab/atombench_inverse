@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #SBATCH --job-name=flow_jarv
-#SBATCH --partition=batch
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=4                # Run 4 tasks (processes) on the node
