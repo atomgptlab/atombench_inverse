@@ -14,12 +14,12 @@ for exp in EXPS:
 
 rule all:
     input:
-        expand("{exp}.final", exp=EXPS),
-        "charts.made"
+        expand("sentinels/{exp}.final", exp=EXPS),
+        "sentinels/charts.made"
 
 rule make_atomgpt_env:
     output:
-        touch("atomgpt_env.created")
+        touch("sentinels/atomgpt_env.created")
     shell:
         """
         bash job_runs/agpt_benchmark_alex/conda_env.job
@@ -27,7 +27,7 @@ rule make_atomgpt_env:
 
 rule make_cdvae_env:
     output:
-        touch("cdvae_env.created")
+        touch("sentinels/cdvae_env.created")
     shell:
         """
         bash job_runs/cdvae_benchmark_alex/conda_env.job
@@ -35,7 +35,7 @@ rule make_cdvae_env:
 
 rule make_flowmm_env:
     output:
-        touch("flowmm_env.created")
+        touch("sentinels/flowmm_env.created")
     shell:
         """
         bash job_runs/flowmm_benchmark_alex/conda_env.job
@@ -43,11 +43,11 @@ rule make_flowmm_env:
 
 rule envs_ready:
     input:
-        "atomgpt_env.created",
-        "cdvae_env.created",
-        "flowmm_env.created"
+        "sentinels/atomgpt_env.created",
+        "sentinels/cdvae_env.created",
+        "sentinels/flowmm_env.created"
     output:
-        touch("all_envs_ready.txt")
+        touch("sentinels/all_envs_ready.txt")
     shell:
         """
         echo 'all conda envs ready' > {output}
@@ -55,31 +55,31 @@ rule envs_ready:
 
 rule make_jarvis_data:
     input:
-        "all_envs_ready.txt"
+        "sentinels/all_envs_ready.txt"
     output:
-        touch("jarvis_data.created")
+        touch("sentinels/jarvis_data.created")
     shell:
         """
-        dvc -C tc_supercon repro
+        dvc --cd tc_supercon repro
         """
 
 rule make_alex_data:
     input:
-        "all_envs_ready.txt"
+        "sentinels/all_envs_ready.txt"
     output:
-        touch("alex_data.created")
+        touch("sentinels/alex_data.created")
     shell:
         """
-        dvc -C alexandria repro
+        dvc --cd alexandria repro
         """
 
 rule make_stats_yamls:
     input:
-        "flowmm_env.created",
-        "jarvis_data.created",
-        "alex_data.created"
+        "sentinels/flowmm_env.created",
+        "sentinels/jarvis_data.created",
+        "sentinels/alex_data.created"
     output:
-        touch("flowmm_yamls.created")
+        touch("sentinels/flowmm_yamls.created")
     shell:
         """
         bash job_runs/flowmm_benchmark_alex/yamls.sh
@@ -87,9 +87,9 @@ rule make_stats_yamls:
 
 rule compile_results:
     input:
-        expand("{exp}.final", exp=EXPS),
+        expand("sentinels/{exp}.final", exp=EXPS),
     output:
-        touch("metrics.computed")
+        touch("sentinels/metrics.computed")
     shell:
         """
         cd job_runs/ && bash ../scripts/loop.sh
@@ -97,9 +97,9 @@ rule compile_results:
 
 rule make_bar_charts:
     input:
-        "metrics.computed"
+        "sentinels/metrics.computed"
     output:
-        touch("charts.made")
+        touch("sentinels/charts.made")
     shell:
         "cd job_runs/ && python ../scripts/bar_chart.py"
 
