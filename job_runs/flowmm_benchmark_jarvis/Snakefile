@@ -1,10 +1,10 @@
 rule train_flowmm_jarvis:
     output:
-        touch("flowmm_benchmark_jarvis.trained")
+        touch("sentinels/flowmm_benchmark_jarvis.trained")
     input:
-        "flowmm_env.created",
-        "jarvis_data.created",
-        "flowmm_yamls.created"
+        "sentinels/flowmm_env.created",
+        "sentinels/jarvis_data.created",
+        "sentinels/flowmm_yamls.created"
     shell:
         """
         sbatch --wait job_runs/flowmm_benchmark_jarvis/train_flowmm.job
@@ -12,12 +12,12 @@ rule train_flowmm_jarvis:
 
 rule infer_flowmm_jarvis:
     output:
-        touch("flowmm_benchmark_jarvis.inferred")
+        touch("sentinels/flowmm_benchmark_jarvis.inferred")
     input:
-        "flowmm_env.created",
-        "jarvis_data.created",
-        "flowmm_benchmark_jarvis.trained",
-        "flowmm_yamls.created"
+        "sentinels/flowmm_env.created",
+        "sentinels/jarvis_data.created",
+        "sentinels/flowmm_benchmark_jarvis.trained",
+        "sentinels/flowmm_yamls.created"
     shell:
         """
         sbatch --wait job_runs/flowmm_benchmark_jarvis/inference_flowmm.job
@@ -25,13 +25,13 @@ rule infer_flowmm_jarvis:
 
 rule benchmark_flowmm_jarvis:
     output:
-        touch("flowmm_benchmark_jarvis.final")
+        touch("sentinels/flowmm_benchmark_jarvis.final")
     input:
-        "flowmm_env.created",
-        "jarvis_data.created",
-        "flowmm_benchmark_jarvis.trained",
-        "flowmm_benchmark_jarvis.inferred",
-        "flowmm_yamls.created"
+        "sentinels/flowmm_env.created",
+        "sentinels/jarvis_data.created",
+        "sentinels/flowmm_benchmark_jarvis.trained",
+        "sentinels/flowmm_benchmark_jarvis.inferred",
+        "sentinels/flowmm_yamls.created"
     shell:
         """
         bash job_runs/flowmm_benchmark_jarvis/write_benchmark.sh
