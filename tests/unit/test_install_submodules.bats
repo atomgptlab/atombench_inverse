@@ -1,8 +1,5 @@
 #!/usr/bin/env bats
 
-load 'bats-support/load'
-load 'bats-assert/load'
-
 REPO_ROOT="${BATS_TEST_DIRNAME}/../.."
 
 @test "submodules can be initialized and updated" {
@@ -15,7 +12,6 @@ REPO_ROOT="${BATS_TEST_DIRNAME}/../.."
 }
 
 @test "expected submodule directories exist" {
-  # replace these with the actual paths your repo uses
   dirs=(
     "models/atomgpt"
     "models/cdvae"
