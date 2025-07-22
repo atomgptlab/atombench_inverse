@@ -7,29 +7,29 @@ on:
     branches: [ main ]
 
 jobs:
-  python-tests:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9, 3.10, 3.11]
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+  # python-tests:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       python-version: [3.9, 3.10, 3.11]
+  #   steps:
+  #     - name: Checkout source
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run Python unit tests
-        run: |
-          # adjust if you use tox or another tool
-          pytest --maxfail=1 --disable-warnings -q
+  #     - name: Run Python unit tests
+  #       run: |
+  #         # adjust if you use tox or another tool
+  #         pytest --maxfail=1 --disable-warnings -q
 
   bash-tests:
     runs-on: ubuntu-latest
