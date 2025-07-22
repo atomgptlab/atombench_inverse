@@ -28,12 +28,10 @@ jobs:
 
   #     - name: Run Python unit tests
   #       run: |
-  #         # adjust if you use tox or another tool
   #         pytest --maxfail=1 --disable-warnings -q
 
   bash-tests:
     runs-on: ubuntu-latest
-    needs: python-tests
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -45,5 +43,4 @@ jobs:
 
       - name: Run Bash unit tests
         run: |
-          # assuming your tests live under tests/bash/*.bats
-          bats tests/bash
+          bats tests/unit/test_install_submodules.bats
