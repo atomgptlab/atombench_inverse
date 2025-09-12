@@ -8,12 +8,11 @@ from __future__ import annotations
 # - Caches pre-plot arrays (Tc lists & crystal-system lists) for fast re-render
 ###############################################################################
 
-import os
 import ast
 import json
 import argparse
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,16 +24,20 @@ from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 from jarvis.core.atoms import Atoms as JarvisAtoms
-from jarvis.core.atoms import pmg_to_atoms, Atoms
 from jarvis.db.figshare import data as jarvis_data
 
 # ── Matplotlib defaults (match your example) ───────────────────────────────
-mpl.rcParams['font.family'] = 'serif'
+mpl.rcParams["font.family"] = "serif"
 plt.rcParams.update({"font.size": 18})
 
 CRYSYS_ORDER = [
-    "triclinic", "monoclinic", "orthorhombic",
-    "tetragonal", "trigonal", "hexagonal", "cubic"
+    "triclinic",
+    "monoclinic",
+    "orthorhombic",
+    "tetragonal",
+    "trigonal",
+    "hexagonal",
+    "cubic",
 ]
 CRYSYS_LABELS = [s.capitalize() for s in CRYSYS_ORDER]
 
@@ -90,7 +93,11 @@ def collect_alexandria(
     tc_vals: List[float] = []
     crysys: List[str] = []
 
-    for row in tqdm(df_all.itertuples(index=False), total=len(df_all), desc="Parsing Alexandria CSVs"):
+    for row in tqdm(
+        df_all.itertuples(index=False),
+        total=len(df_all),
+        desc="Parsing Alexandria CSVs",
+    ):
         if max_size is not None and len(tc_vals) >= max_size:
             break
 
@@ -166,15 +173,31 @@ def plot_tc_overlay(
     w_j = _weights_percent(len(tc_j))
 
     # Alexandria (plum), JARVIS (tab:blue) — match your overlay look
-    ax.hist(tc_j, bins=bins, weights=w_j, alpha=0.6, label="JARVIS Supercon-3D", color="tab:blue")
-    ax.hist(tc_a, bins=bins, weights=w_a, alpha=0.6, label="Alexandria DS-A/DS-B", color="plum")
+    ax.hist(
+        tc_j,
+        bins=bins,
+        weights=w_j,
+        alpha=0.6,
+        label="JARVIS Supercon-3D",
+        color="#002855",
+    )
+    ax.hist(
+        tc_a,
+        bins=bins,
+        weights=w_a,
+        alpha=0.6,
+        label="Alexandria DS-A/DS-B",
+        color="#EEAA00",
+    )
 
-    ax.set_xlabel(r"$T_c$ (K)", fontsize=24)
-    ax.set_ylabel("Materials dist. (%)", fontsize=24)
-    ax.set_title(r"$T_c$ Distribution — JARVIS vs Alexandria", fontsize=28)
+    ax.set_xlabel(r"$T_c$ (K)", fontsize=30)
+    ax.set_ylabel("Materials dist. (%)", fontsize=30)
+    ax.set_title("Distribution of $T_c$\nJARVIS vs Alexandria", fontsize=38)
     ax.set_xticks(np.linspace(tc_min, tc_max, 10))
-    ax.grid(axis="y", linestyle="--", alpha=0.3)
-    ax.legend(fontsize=16)
+    ax.tick_params(axis="x", labelsize=23)
+    plt.yticks(fontsize=23)
+    # ax.grid(axis="y", linestyle="--", alpha=0.3)
+    ax.legend(fontsize=20)
 
     _ensure_dir(out_png.parent)
     plt.savefig(out_png, format="png", dpi=200)
@@ -202,20 +225,36 @@ def plot_crysys_overlay(
 
     x = np.arange(len(CRYSYS_ORDER))
 
-    fig, ax = plt.subplots(figsize=(12, 7), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(11.5, 11.5), constrained_layout=True)
 
     # Overlay bars at identical positions (alpha) to mimic your style
     bar_w = 0.6
-    ax.bar(x, p_j, width=bar_w, alpha=0.6, label="JARVIS Supercon-3D", color="tab:blue")
-    ax.bar(x, p_a, width=bar_w, alpha=0.6, label="Alexandria DS-A/DS-B", color="plum")
+    ax.bar(
+        x,
+        p_j,
+        width=bar_w,
+        alpha=0.6,
+        label="JARVIS Supercon-3D",
+        color="#002855",
+    )
+    ax.bar(
+        x,
+        p_a,
+        width=bar_w,
+        alpha=0.6,
+        label="Alexandria DS-A/DS-B",
+        color="#EEAA00",
+    )
 
     ax.set_xticks(x)
-    ax.set_xticklabels(CRYSYS_LABELS, rotation=15)
-    ax.set_xlabel("Crystal system", fontsize=20)
-    ax.set_ylabel("Materials dist. (%)", fontsize=20)
-    ax.set_title("Crystal Systems — JARVIS vs Alexandria", fontsize=24)
-    ax.grid(axis="y", linestyle="--", alpha=0.3)
-    ax.legend(fontsize=14)
+    ax.set_xticklabels(CRYSYS_LABELS, rotation=25)
+    ax.set_xlabel("Crystal system", fontsize=30)
+    ax.set_ylabel("% of Total Structures", fontsize=30)
+    ax.set_title("Crystal Systems \n JARVIS vs Alexandria", fontsize=38)
+    # ax.grid(axis="y", linestyle="--", alpha=0.3)
+    ax.legend(fontsize=23)
+    plt.xticks(fontsize=23)
+    plt.yticks(fontsize=23)
 
     _ensure_dir(out_png.parent)
     plt.savefig(out_png, format="png", dpi=200)
@@ -230,32 +269,77 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Generate overlaid, normalized comparisons between JARVIS and Alexandria:\n"
             "  1) tc_overlay_compare.png  (normalized Tc histogram overlay)\n"
-            "  2) crystal_system_overlay_compare.png  (normalized crystal-system overlay)\n\n"
+            "  2) crystal_system_overlay_compare.png  "
+            "(normalized crystal-system overlay)\n\n"
             "Caching: stores pre-plot arrays (Tc values, crystal systems) so you can\n"
             "re-render instantly after tweaking visual settings."
         ),
     )
     # Alexandria CSV inputs
-    p.add_argument("--alex-csv-files", nargs="+", required=True, help="Alexandria CSV file paths")
-    p.add_argument("--alex-target-key", default="Tc", help="Alexandria target column (Tc)")
-    p.add_argument("--alex-struct-key", default="structure", help="Alexandria column with pymatgen Structure dict")
+    p.add_argument(
+        "--alex-csv-files",
+        nargs="+",
+        required=True,
+        help="Alexandria CSV file paths",
+    )
+    p.add_argument(
+        "--alex-target-key",
+        default="Tc",
+        help="Alexandria target column (Tc)",
+    )
+    p.add_argument(
+        "--alex-struct-key",
+        default="structure",
+        help="Alexandria column with pymatgen Structure dict",
+    )
 
     # JARVIS inputs
-    p.add_argument("--jarvis-dataset", required=True, help="JARVIS figshare dataset name (e.g., 'dft_3d')")
-    p.add_argument("--jarvis-target-key", default="Tc_supercon", help="JARVIS Tc column (e.g., Tc_supercon)")
+    p.add_argument(
+        "--jarvis-dataset",
+        required=True,
+        help="JARVIS figshare dataset name (e.g., 'dft_3d')",
+    )
+    p.add_argument(
+        "--jarvis-target-key",
+        default="Tc_supercon",
+        help="JARVIS Tc column (e.g., Tc_supercon)",
+    )
 
     # Symmetry / performance
-    p.add_argument("--symprec", type=float, default=0.1, help="Symmetry tolerance for SpacegroupAnalyzer")
-    p.add_argument("--max-size", type=int, default=None, help="Optional cap per dataset for quick tests")
+    p.add_argument(
+        "--symprec",
+        type=float,
+        default=0.1,
+        help="Symmetry tolerance for SpacegroupAnalyzer",
+    )
+    p.add_argument(
+        "--max-size",
+        type=int,
+        default=None,
+        help="Optional cap per dataset for quick tests",
+    )
 
     # Binning / aesthetics
     p.add_argument("--tc-min", type=float, default=0.0)
     p.add_argument("--tc-max", type=float, default=45.0)
-    p.add_argument("--tc-step", type=float, default=1.5, help="Step size for identical Tc bin edges")
+    p.add_argument(
+        "--tc-step",
+        type=float,
+        default=1.5,
+        help="Step size for identical Tc bin edges",
+    )
 
     # Output & caching
-    p.add_argument("--output", required=True, help="Output directory for PNGs and cache")
-    p.add_argument("--refresh", action="store_true", help="Rebuild cache (recompute symmetry)")
+    p.add_argument(
+        "--output",
+        required=True,
+        help="Output directory for PNGs and cache",
+    )
+    p.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Rebuild cache (recompute symmetry)",
+    )
 
     return p
 
@@ -301,7 +385,11 @@ def main(argv: Optional[List[str]] = None):
             },
             "meta": {
                 "symprec": args.symprec,
-                "source_note": "Tc values use provided columns; crystal systems via SpacegroupAnalyzer.get_crystal_system() on conventional standardized structures.",
+                "source_note": (
+                    "Tc values use provided columns; crystal systems via "
+                    "SpacegroupAnalyzer.get_crystal_system() on conventional "
+                    "standardized structures."
+                ),
             },
         }
         with open(cache_path, "w") as f:
@@ -340,9 +428,11 @@ def main(argv: Optional[List[str]] = None):
     _ensure_dir(counts_dir)
     # crystal system percent tables
     pd.DataFrame(
-        {"crystal_system": CRYSYS_LABELS,
-         "jarvis_percent": _crysys_percent_hist(cs_j),
-         "alexandria_percent": _crysys_percent_hist(cs_a)}
+        {
+            "crystal_system": CRYSYS_LABELS,
+            "jarvis_percent": _crysys_percent_hist(cs_j),
+            "alexandria_percent": _crysys_percent_hist(cs_a),
+        }
     ).to_csv(counts_dir / "crystal_system_percentages.csv", index=False)
 
     print(f"✓ Wrote {out_dir / 'tc_overlay_compare.png'}")
@@ -352,4 +442,3 @@ def main(argv: Optional[List[str]] = None):
 
 if __name__ == "__main__":
     main()
-
