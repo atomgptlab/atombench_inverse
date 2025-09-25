@@ -4,7 +4,7 @@ mkdir -p ../models/cdvae/data/alexandria/
 uv pip install jarvis-tools pymatgen numpy pandas tqdm
 python scripts/alexandria_preprocess.py cdvae \
        --csv-files dataset1.csv dataset2.csv \
-       --output . --seed 123
+       --output . --seed 123 --max-size 20
 python - <<'PYCODE'
 import os
 path = "../models/cdvae/data/alexandria"

@@ -2,7 +2,7 @@
 # run data preprocessor
 python scripts/alexandria_preprocess.py flowmm \
        --csv-files dataset1.csv dataset2.csv \
-       --output . --seed 123
+       --output . --seed 123 --max-size 20
 
 # move everything to the right spot
 mkdir -p ../models/flowmm/data/alexandria
