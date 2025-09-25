@@ -1,5 +1,5 @@
 {
-    "id_prop_path":"../../alexandria/atomgpt_data/id_prop.csv",
+    "id_prop_path":"alexandria/atomgpt_data/id_prop.csv",
     "prefix": "atomgpt_run",
     "model_name": "unsloth/mistral-7b-bnb-4bit",
     "batch_size": 2,
@@ -17,7 +17,7 @@
     "loss_type": "default",
     "optim": "adamw_8bit",
     "lr_scheduler_type": "linear",
-    "output_dir": "./saved",
+    "output_dir": "job_runs/agpt_benchmark_alex/saved",
     "csv_out": "AI-AtomGen-prop-dft_3d-test-rmse.csv",
     "chem_info": "formula",
     "max_seq_length": 2048,

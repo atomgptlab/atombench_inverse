@@ -15,4 +15,4 @@ conda activate my_atomgpt
 nvidia-smi
 
 python models/atomgpt/atomgpt/inverse_models/inverse_models.py \
-    --config_name ./config.json
+    --config_name job_runs/agpt_benchmark_alex/config.json
