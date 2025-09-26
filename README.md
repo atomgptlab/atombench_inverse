@@ -16,7 +16,8 @@ pip install uv dvc snakemake
 
 ## Compute benchmarks
 1) Navigate to [scripts/wandb_api_key.sh](scripts/wandb_api_key.sh) and populate with a valid wandb_api_key
-2) Run this command to automatically recompute benchmarks, metrics, and figures:
+1) Navigate to [scripts/absolute_path.sh](scripts/absolute_path.sh) and populate with the absolute path to this repository
+3) Run this command to automatically recompute benchmarks, metrics, and figures:
 ```bash
 snakemake all --cores all
 ```
