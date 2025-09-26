@@ -49,7 +49,7 @@ echo "running inference"
 python models/cdvae/scripts/evaluate.py \
     --model_path "${MODEL_PATH}" \
     --tasks recon \
-    --num_evals 1 #\
+    --num_evals 1 \
     --force_atom_types
 
 echo "Done" 
