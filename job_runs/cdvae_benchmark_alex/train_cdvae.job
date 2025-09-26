@@ -25,8 +25,7 @@ source scripts/wandb_api_key.sh
 
 python -u -m cdvae.run data=alexandria expname=alexandria \
 	model.num_noise_level=2 \
-	data.train_max_epochs=1 \
-	train.pl_trainer.gpus=1 \
+	train.pl_trainer.gpus=0 \
 	model.predict_property=True \
 
 echo "Done"
