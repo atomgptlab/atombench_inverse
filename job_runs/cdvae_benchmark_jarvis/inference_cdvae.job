@@ -46,10 +46,10 @@ fi
 
 
 echo "running inference"
-stdbuf -oL -eL python models/cdvae/scripts/evaluate.py \
+python models/cdvae/scripts/evaluate.py \
     --model_path "${MODEL_PATH}" \
     --tasks recon \
     --num_evals 1 #\
-    #--force_atom_types
+    --force_atom_types
 
 echo "Done" 
