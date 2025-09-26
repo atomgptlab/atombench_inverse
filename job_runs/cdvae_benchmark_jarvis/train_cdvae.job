@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=cdvae_tc            
+#SBATCH --job-name=cdvae_alex
 #SBATCH --nodes=1                         
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=4                # Run 4 tasks (processes) on the node
@@ -13,21 +13,20 @@ eval "$(conda shell.bash hook)"
 conda activate cdvae
 nvidia-smi
 
-export PROJECT_ROOT="models/cdvae"
-export HYDRA_JOBS="job_runs/cdvae_benchmark_jarvis/hydra_outputs"
+
+source scripts/absolute_path.sh
+export PROJECT_ROOT="${ABS_PATH%/}/models/cdvae"
+export HYDRA_JOBS="${ABS_PATH%/}/job_runs/cdvae_benchmark_jarvis/hydra_outputs"
 export HYDRA_FULL_ERROR="1"
-export WABDB_DIR="job_runs/cdvae_benchmark_jarvis/wandb_outputs"
+export WABDB_DIR="${ABS_PATH%/}/job_runs/cdvae_benchmark_jarvis/wandb_outputs"
 #export WANDB_MODE="offline"
 source scripts/wandb_api_key.sh
 
 python -u -m cdvae.run data=supercon expname=supercon \
 	model.num_noise_level=2 \
-	data.train_max_epochs=1 \
 	train.pl_trainer.gpus=1 \
 	model.predict_property=True \
 
 echo "Done"
 
 
-
-	
