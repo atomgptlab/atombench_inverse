@@ -22,7 +22,7 @@ nvidia-smi
 cd models/flowmm/
 bash create_env_file.sh
 python -u -m scripts_model.run \
-             data=jarvis \
+             data=supercon \
              model=null_params \
              hydra.run.dir=$FLOWMM_RUN_ROOT \
              train.model_checkpoints.save_top_k=1 \
