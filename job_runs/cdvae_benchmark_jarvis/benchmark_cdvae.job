@@ -22,8 +22,7 @@ export WABDB_DIR="${ABS_PATH%/}/job_runs/cdvae_benchmark_jarvis/wandb_outputs"
 #export WANDB_MODE="offline"
 source scripts/wandb_api_key.sh
 
-echo "running python script"
-#conda run -n cdvae --no-capture-output 
+echo "running python script" 
 python job_runs/cdvae_benchmark_jarvis/write_benchmark.py \
     --run_dir job_runs/cdvae_benchmark_jarvis/hydra_outputs/singlerun/????-??-??/supercon \
     --use_tensor recon \

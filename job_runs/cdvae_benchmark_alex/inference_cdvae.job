@@ -1,6 +1,7 @@
+(base) [crc00042@dsis001 job_runs]$ cat cdvae_benchmark_jarvis/inference_cdvae.job 
 #!/bin/bash
 
-#SBATCH --job-name=cdvae_alex            
+#SBATCH --job-name=cdvae_tc            
 #SBATCH --nodes=1                         
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=4                # Run 4 tasks (processes) on the node
@@ -13,20 +14,44 @@ eval "$(conda shell.bash hook)"
 conda activate cdvae
 nvidia-smi
 
-
 source scripts/absolute_path.sh
-export PROJECT_ROOT="${ABS_PATH%/}/models/cdvae"
-export HYDRA_JOBS="${ABS_PATH%/}/job_runs/cdvae_benchmark_jarvis/hydra_outputs"
+
+ROOT="${ABS_PATH%/}"
+
+export PROJECT_ROOT="${ROOT}/models/cdvae"
+export HYDRA_JOBS="${ROOT}/job_runs/cdvae_benchmark_jarvis/hydra_outputs"
 export HYDRA_FULL_ERROR="1"
-export WABDB_DIR="${ABS_PATH%/}/job_runs/cdvae_benchmark_jarvis/wandb_outputs"
-#export WANDB_MODE="offline"
+export WABDB_DIR="${ROOT}/job_runs/cdvae_benchmark_jarvis/wandb_outputs"
+# export WANDB_MODE="offline"
 source scripts/wandb_api_key.sh
 
+latest_run_dir="$(ls -d "${HYDRA_JOBS}/singlerun/"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] 2>/dev/null | sort | tail -n1)"
+
+if [[ -z "$latest_run_dir" ]]; then
+  echo "ERROR: No singlerun dated directories found under ${HYDRA_JOBS}/singlerun/"
+  exit 1
+fi
+
+export MODEL_PATH="${latest_run_dir}/supercon"
+
+echo "Resolved MODEL_PATH: ${MODEL_PATH}"
+if [[ ! -d "${MODEL_PATH}" ]]; then
+  echo "ERROR: MODEL_PATH does not exist: ${MODEL_PATH}"
+  exit 1
+fi
+if [[ ! -d "${MODEL_PATH}/.hydra" ]]; then
+  echo "ERROR: Missing .hydra directory in ${MODEL_PATH} (Hydra needs this)"
+  ls -la "${MODEL_PATH}"
+  exit 1
+fi
+
+
 echo "running inference"
-python models/cdvae/scripts/evaluate.py \
-    --model_path job_runs/cdvae_benchmark_alex/hydra_outputs/singlerun/????-??-??/alexandria \
+stdbuf -oL -eL python models/cdvae/scripts/evaluate.py \
+    --model_path "${MODEL_PATH}" \
     --tasks recon \
     --num_evals 1 #\
     #--force_atom_types
 
 echo "Done"
+(base) [crc00042@dsis001 job_runs]$ 
