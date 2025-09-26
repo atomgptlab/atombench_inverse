@@ -1,4 +1,4 @@
 #!/bin/bash
+export ABS_PATH=
 
-export absolute_path=
 
