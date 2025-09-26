@@ -19,10 +19,12 @@ python "${ROOT}/job_runs/flowmm_benchmark_alex/inspect_pt.py" \
    --pt_path "${pt_path}" \
    --output_csv "${out_csv}"
 
+# keep it in flowmm_benchmark_alex; only move fallback
 if [[ -f "${out_csv}" ]]; then
-  mv "${out_csv}" "${ROOT}/"
+  echo "Wrote ${out_csv}"
 elif [[ -f "${ROOT}/models/flowmm/AI-AtomGen-prop-dft_3d-test-rmse.csv" ]]; then
-  mv "${ROOT}/models/flowmm/AI-AtomGen-prop-dft_3d-test-rmse.csv" "${ROOT}/"
+  mv "${ROOT}/models/flowmm/AI-AtomGen-prop-dft_3d-test-rmse.csv" "${ROOT}/job_runs/flowmm_benchmark_alex/"
+  echo "Moved fallback CSV to ${ROOT}/job_runs/flowmm_benchmark_alex/"
 else
   echo "WARN: CSV not found where expected."
 fi
