@@ -20,7 +20,7 @@ python "${ROOT}/job_runs/flowmm_benchmark_jarvis/inspect_pt.py" \
    --pt_path "${pt_path}" \
    --output_csv "${out_csv}" \
    --test_csv "${ROOT}/models/flowmm/data/supercon/test.csv" \
-   --dump_json
+   --dump_json true
 
 # keep it in flowmm_benchmark_jarvis; only move fallback
 if [[ -f "${out_csv}" ]]; then

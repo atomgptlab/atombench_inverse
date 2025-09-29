@@ -20,7 +20,7 @@ python "${ROOT}/scripts/inspect_pt.py" \
    --pt_path "${pt_path}" \
    --output_csv "${out_csv}" \
    --test_csv "${ROOT}/models/flowmm/data/alexandria/test.csv" \
-   --dump_json
+   --dump_json true
 
 # keep it in flowmm_benchmark_alex; only move fallback
 if [[ -f "${out_csv}" ]]; then
