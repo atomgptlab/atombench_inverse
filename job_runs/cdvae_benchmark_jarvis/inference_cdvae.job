@@ -51,5 +51,6 @@ python models/cdvae/scripts/evaluate.py \
     --tasks recon \
     --num_evals 1 \
     --force_atom_types
+    --force_num_atoms
 
 echo "Done" 
