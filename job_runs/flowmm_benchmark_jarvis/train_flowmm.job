@@ -20,7 +20,7 @@ export FLOWMM_RUN_ROOT="job_runs/flowmm_benchmark_jarvis/outputs/"
 
 # commands
 nvidia-smi
-bash create_env_file.sh
+bash models/flowmm/create_env_file.sh
 python -u -m scripts_model.run \
              data=supercon \
              model=null_params \
