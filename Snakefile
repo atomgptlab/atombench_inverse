@@ -18,7 +18,7 @@ rule all:
         expand("{exp}.final", exp=EXPS),
         "charts.made",
         "overlay_charts.created",
-	"benchmarks.verified"
+ "benchmarks.verified"
 
 rule make_atomgpt_env:
     output:
@@ -100,13 +100,13 @@ rule compile_results:
 
 rule verify_benchmarks:
     input:
-	"metrics.computed"
+ "metrics.computed"
     output:
-	touch("benchmarks.verified")
+ touch("benchmarks.verified")
     shell:
-	"""
-	bash scripts/verify_benchmarks.py --root job_runs/
-	"""
+ """
+ bash scripts/verify_benchmarks.py --root job_runs/
+ """
 
 rule make_bar_charts:
     input:
