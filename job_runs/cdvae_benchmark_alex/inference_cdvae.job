@@ -12,7 +12,8 @@ module load cuda/11.8
 eval "$(conda shell.bash hook)"
 conda activate cdvae
 nvidia-smi
-
+unset ROOT
+unset PROJECT_ROOT
 source scripts/absolute_path.sh
 
 ROOT="${ABS_PATH%/}"

@@ -14,7 +14,8 @@ conda activate cdvae
 nvidia-smi
 
 source scripts/absolute_path.sh
-
+unset ROOT
+unset PROJECT_ROOT
 ROOT="${ABS_PATH%/}"
 
 export PROJECT_ROOT="${ROOT}/models/cdvae"
