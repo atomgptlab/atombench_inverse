@@ -15,4 +15,7 @@ conda env list
 nvidia-smi
 
 python models/atomgpt/atomgpt/inverse_models/inverse_models.py \
-    --config_name job_runs/agpt_benchmark_jarvis/config.json
+	--config_name job_runs/agpt_benchmark_jarvis/config.json
+
+mv AI* job_runs/agpt_benchmark_jarvis/
+

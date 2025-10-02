@@ -52,8 +52,8 @@ stages:
     deps:
     - path: scripts/data_preprocess.py
       hash: md5
-      md5: 2a0ef3cabaae499063f1e7cba8f972f0
-      size: 13054
+      md5: db69d399e1e04103e93b7491414091f4
+      size: 13049
     - path: scripts/run_cdvae_data.sh
       hash: md5
       md5: 567e2cc919cda29c75c08fdbf2c119d2
@@ -69,8 +69,8 @@ stages:
     deps:
     - path: scripts/data_preprocess.py
       hash: md5
-      md5: 2a0ef3cabaae499063f1e7cba8f972f0
-      size: 13054
+      md5: db69d399e1e04103e93b7491414091f4
+      size: 13049
     - path: scripts/run_flowmm_data.sh
       hash: md5
       md5: 1e0ee1ccea11d6901571c6915ff76db0
@@ -86,8 +86,8 @@ stages:
     deps:
     - path: scripts/data_preprocess.py
       hash: md5
-      md5: 2a0ef3cabaae499063f1e7cba8f972f0
-      size: 13054
+      md5: db69d399e1e04103e93b7491414091f4
+      size: 13049
     - path: scripts/run_atomgpt_data.sh
       hash: md5
       md5: 4d3c61b0efe5cbde7f58747998cd96da
@@ -95,8 +95,8 @@ stages:
     outs:
     - path: atomgpt_data
       hash: md5
-      md5: 33410e3eb91059e7528098c62dbf2477.dir
-      size: 352526
+      md5: 76d92e8d8c3aa694e5399e01c6d05151.dir
+      size: 347236
       nfiles: 1059
   check:
     cmd: python scripts/checker.py --atomgpt-dir ./atomgpt_data --cdvae-dir ../models/cdvae/data/supercon
