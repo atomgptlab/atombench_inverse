@@ -1,6 +1,3 @@
-[submodule "models/atomgpt"]
-	path = models/atomgpt
-	url = git@github.com:crhysc/atomgpt
 [submodule "models/cdvae"]
 	path = models/cdvae
 	url = git@github.com:crhysc/cdvae
