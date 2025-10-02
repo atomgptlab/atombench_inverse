@@ -4,3 +4,6 @@
 [submodule "models/flowmm"]
 	path = models/flowmm
 	url = git@github.com:crhysc/flowmm
+[submodule "models/atomgpt"]
+	path = models/atomgpt
+	url = git@github.com:atomgptlab/atomgpt
