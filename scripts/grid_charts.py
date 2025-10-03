@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+reconstruction_grid.py  —  3×3 overlay figures (Alexandria & JARVIS)
+
+- Rows  : AtomGPT, CDVAE, FlowMM
+- Cols  : a, c, γ
+- Colors: WVU Blue (target) / WVU Gold (predicted)
+- KLD   : pulled from each benchmark's metrics.json and shown prominently
+- Bins  : HARD-CODED and uniform within each PNG (Alex bins ≠ JARVIS bins)
+"""
 from __future__ import annotations
 
 import argparse
@@ -13,25 +22,33 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from jarvis.io.vasp.inputs import Poscar
 
-# ───────────────────────── style ─────────────────────────
-mpl.rcParams["font.family"] = "serif"
+# ───────────────────────── visual style ─────────────────────────
+mpl.rcParams.update({
+    "font.family": "serif",
+    "axes.linewidth": 1.4,
+    "axes.titleweight": "bold",
+    "patch.linewidth": 0.0,      # softer, less “boxy” fills
+    "patch.joinstyle": "round",
+    "patch.capstyle": "round",
+})
+
 WVU_BLUE = "#002855"  # target
-WVU_GOLD = "#EEAA00"  # predicted (WVU gold)
+WVU_GOLD = "#EEAA00"  # predicted
 
 MODELS = ["agpt", "cdvae", "flowmm"]
 MODEL_LABEL = {"agpt": "AtomGPT", "cdvae": "CDVAE", "flowmm": "FlowMM"}
-
 PARAMS = ["a", "c", "gamma"]
 PARAM_LABEL = {"a": r"$a$ (Å)", "c": r"$c$ (Å)", "gamma": r"$\gamma$ (°)"}
 
-# Bins similar to your earlier plots/figures
-BINS = {
-    "a": np.arange(2.0, 7.0, 0.1),
-    "c": np.arange(2.0, 7.0, 0.1),
-    "gamma": np.arange(30.0, 150.0, 10.0),
-}
+# ── HARD-CODED BINS (uniform within each PNG) ─────────────────────────────
+# Alexandria: finer for a/c, wide for γ
+ALEX_BINS_A_C = np.arange(2.0, 7.0 + 1e-9, 0.20)     # width = 0.20 Å
+ALEX_BINS_GAM  = np.arange(30.0, 140.0 + 1e-9, 10.0) # width = 10°
+# JARVIS: slightly coarser for a/c given size, γ same width
+JARV_BINS_A_C  = np.arange(2.0, 7.0 + 1e-9, 0.25)    # width = 0.25 Å
+JARV_BINS_GAM  = np.arange(40.0, 140.0 + 1e-9, 10.0) # width = 10°
 
-# ───────────────────── helpers: discovery ─────────────────────
+# ───────────────────── discovery helpers ─────────────────────
 def find_benchmark_csv(dir_path: Path) -> Optional[Path]:
     """Newest CSV under dir_path (recursively) that has id/target/prediction columns."""
     latest: Optional[Tuple[float, Path]] = None
@@ -52,12 +69,8 @@ def find_benchmark_csv(dir_path: Path) -> Optional[Path]:
                 continue
     return latest[1] if latest else None
 
-
 def discover_model_dirs(root: Path, tag: str) -> Dict[str, Path]:
-    """
-    From job_runs root, find dirs for each model for a dataset tag ('alex' or 'jarvis').
-    Returns a subset of {'agpt': Path, 'cdvae': Path, 'flowmm': Path}.
-    """
+    """Find dirs for each model for a dataset tag ('alex' or 'jarvis')."""
     out: Dict[str, Path] = {}
     for entry in root.iterdir():
         if not entry.is_dir():
@@ -71,21 +84,18 @@ def discover_model_dirs(root: Path, tag: str) -> Dict[str, Path]:
                 break
     return out
 
-# ───────────────────── helpers: parsing ─────────────────────
+# ───────────────────── POSCAR & metrics ─────────────────────
 def _unescape_poscar(s: str) -> str:
     return (
         s.replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace("\\n", "\n")
-        .replace("\\t", " ")
-        .strip()
+         .replace("\r", "\n")
+         .replace("\\n", "\n")
+         .replace("\\t", " ")
+         .strip()
     )
 
-
 def extract_series(csv_path: Path) -> Dict[str, Dict[str, List[float]]]:
-    """
-    Read a benchmark CSV -> { 'target': {'a','c','gamma'}, 'predicted': {…} } as lists of floats.
-    """
+    """CSV -> {'target': {'a','c','gamma'}, 'predicted': {...}} with lists of floats."""
     out = {"target": {k: [] for k in PARAMS}, "predicted": {k: [] for k in PARAMS}}
     with csv_path.open("r", newline="", encoding="utf-8", errors="replace") as fh:
         reader = csv.DictReader(fh)
@@ -93,64 +103,69 @@ def extract_series(csv_path: Path) -> Dict[str, Dict[str, List[float]]]:
             try:
                 tgt = Poscar.from_string(_unescape_poscar(row["target"])).atoms.to_dict()
                 pred = Poscar.from_string(_unescape_poscar(row["prediction"])).atoms.to_dict()
-
                 out["target"]["a"].append(float(tgt["abc"][0]))
                 out["target"]["c"].append(float(tgt["abc"][2]))
                 out["target"]["gamma"].append(float(tgt["angles"][2]))
-
                 out["predicted"]["a"].append(float(pred["abc"][0]))
                 out["predicted"]["c"].append(float(pred["abc"][2]))
                 out["predicted"]["gamma"].append(float(pred["angles"][2]))
             except Exception:
-                # skip bad rows
                 continue
     return out
 
-
 def load_klds(metrics_path: Path) -> Dict[str, float]:
-    """
-    Load KLD values from metrics.json -> {'a':…, 'c':…, 'gamma':…}.
-    Missing keys return {} (we'll just omit annotation).
-    """
+    """metrics.json -> {'a':…, 'c':…, 'gamma':…} (best-effort)."""
     try:
         data = json.loads(metrics_path.read_text())
         k = data.get("KLD", {})
-        return {
-            "a": float(k.get("a")),
-            "c": float(k.get("c")),
-            "gamma": float(k.get("gamma")),
-        }
+        return {"a": float(k.get("a")), "c": float(k.get("c")), "gamma": float(k.get("gamma"))}
     except Exception:
         return {}
 
-# ───────────────────── helpers: plotting ─────────────────────
+# ───────────────────── plotting ─────────────────────
 def _weights_percent(n: int) -> np.ndarray:
     return np.ones(n, dtype=float) * (100.0 / n) if n > 0 else np.array([])
 
+def style_axes(ax: plt.Axes, left_col: bool, bottom_row: bool) -> None:
+    """Salient ticks/labels, minimal clutter."""
+    ax.tick_params(axis="both", which="major", labelsize=12, width=1.4, length=7)
+    ax.tick_params(axis="both", which="minor", width=1.0, length=4)
+    ax.minorticks_on()
+    if not left_col:
+        ax.set_yticklabels([])
+    if not bottom_row:
+        ax.set_xlabel("")
 
 def annotate_kld(ax: plt.Axes, value: Optional[float]) -> None:
     if value is None:
         return
     ax.text(
-        0.97,
-        0.92,
-        f"KLD = {value:.3f}",
-        transform=ax.transAxes,
-        ha="right",
-        va="top",
-        fontsize=10,
-        bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.8),
+        0.97, 0.92, f"KLD = {value:.3f}",
+        transform=ax.transAxes, ha="right", va="top",
+        fontsize=13, fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.35", fc="white", ec=WVU_BLUE, lw=1.2, alpha=0.95),
     )
 
-
-def plot_dataset_grid(tag: str, root: Path, out_png: Path, title: str) -> None:
-    """
-    Build a 3×3 grid for one dataset tag ('alex' or 'jarvis'):
-      rows = models (AtomGPT, CDVAE, FlowMM)
-      cols = parameters (a, c, gamma)
-    """
+def plot_dataset_grid(tag: str,
+                      root: Path,
+                      out_png: Path,
+                      title: str,
+                      bins_a_c: np.ndarray,
+                      bins_gamma: np.ndarray) -> None:
+    """Build a 3×3 grid for one dataset tag ('alex' or 'jarvis')."""
     model_dirs = discover_model_dirs(root, tag)
-    fig, axes = plt.subplots(3, 3, figsize=(12.5, 8.5), constrained_layout=True)
+
+    # Smaller, tighter figure. We'll control margins to keep the right-side ylabel
+    # clearly separated from the panels (no overlap).
+    fig, axes = plt.subplots(3, 3, figsize=(8.8, 5.6))
+    fig.subplots_adjust(
+        left=0.08, right=0.88, bottom=0.12, top=0.86,
+        wspace=0.28, hspace=0.30
+    )
+
+    # column titles — extra salient
+    for c, p in enumerate(PARAMS):
+        axes[0, c].set_title(PARAM_LABEL[p], fontsize=18, fontweight="bold", pad=8)
 
     for r, model in enumerate(MODELS):
         axrow = axes[r]
@@ -169,6 +184,9 @@ def plot_dataset_grid(tag: str, root: Path, out_png: Path, title: str) -> None:
 
         for c, param in enumerate(PARAMS):
             ax = axrow[c]
+            if c == 0:
+                ax.set_ylabel(label, fontsize=16, fontweight="bold")
+
             if series is None or not series["target"][param] or not series["predicted"][param]:
                 ax.text(0.5, 0.5, "no data", ha="center", va="center", fontsize=12, alpha=0.7)
                 ax.set_xticks([]); ax.set_yticks([])
@@ -177,50 +195,45 @@ def plot_dataset_grid(tag: str, root: Path, out_png: Path, title: str) -> None:
             xt = np.asarray(series["target"][param], dtype=float)
             xp = np.asarray(series["predicted"][param], dtype=float)
 
-            bins = BINS[param]
+            bins = bins_a_c if param in ("a", "c") else bins_gamma
             wt_t = _weights_percent(len(xt))
             wt_p = _weights_percent(len(xp))
 
-            # target (blue) then predicted (gold)
-            ax.hist(xt, bins=bins, weights=wt_t, alpha=0.70, color=WVU_BLUE, label="target")
-            ax.hist(xp, bins=bins, weights=wt_p, alpha=0.70, color=WVU_GOLD, label="predicted")
+            # Less “rectangular”: stepfilled with rounded joins; no edges.
+            ax.hist(xt, bins=bins, weights=wt_t,
+                    histtype="stepfilled", alpha=0.68, color=WVU_BLUE,
+                    edgecolor="none", label="target")
+            ax.hist(xp, bins=bins, weights=wt_p,
+                    histtype="stepfilled", alpha=0.68, color=WVU_GOLD,
+                    edgecolor="none", label="predicted")
 
-            # Titles/labels layout
-            if r == 0:
-                ax.set_title(PARAM_LABEL[param], fontsize=16)
-            if c == 0:
-                ax.set_ylabel(label, fontsize=14)
-            else:
-                ax.set_yticklabels([])  # reduce clutter
             if r == 2:
-                ax.set_xlabel(PARAM_LABEL[param], fontsize=12)
-            else:
-                ax.set_xlabel("")
+                ax.set_xlabel(PARAM_LABEL[param], fontsize=14, fontweight="bold")
 
-            # KLD annotation from metrics.json
+            style_axes(ax, left_col=(c == 0), bottom_row=(r == 2))
             annotate_kld(ax, klds.get(param))
 
-    # One legend in the top-left panel
+    # single legend (clear & compact)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     if handles:
-        axes[0, 0].legend(handles, labels, frameon=True, fontsize=10)
+        leg = axes[0, 0].legend(handles, labels, frameon=True, fontsize=12)
+        leg.get_frame().set_alpha(0.95)
 
-    # Add a big y-axis label on the right like your paper figure
-    fig.suptitle(title, fontsize=20)
-    # optional: global y label; uses a figure-level text at right
-    fig.text(0.99, 0.5, "Materials Percentage (%)", rotation=90,
-             va="center", ha="right", fontsize=12)
+    # bold suptitle & global right-side y-label (kept outside the panels)
+    fig.suptitle(title, fontsize=22, fontweight="bold")
+    fig.text(0.93, 0.5, "Materials Percentage (%)",
+             rotation=90, va="center", ha="center",
+             fontsize=14, fontweight="bold")
 
     out_png.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_png, dpi=200)
+    fig.savefig(out_png, dpi=200, bbox_inches="tight")
     plt.close(fig)
     print(f"✓ wrote {out_png}")
-
 
 # ────────────────────────────── CLI ──────────────────────────────
 def main():
     ap = argparse.ArgumentParser(
-        description="Reconstruct 3×3 overlay grids for Alexandria and JARVIS; annotate each panel with KLD from metrics.json."
+        description="3×3 overlay figures with salient styling and HARD-CODED per-dataset bins."
     )
     ap.add_argument("--root", type=Path, default=Path("job_runs"), help="Root containing benchmark subdirs")
     ap.add_argument("--outdir", type=Path, default=Path("figures"), help="Directory to write PNGs")
@@ -228,9 +241,14 @@ def main():
     ap.add_argument("--jarvis-title", default="JARVIS Supercon-3D", help="Suptitle for JARVIS figure")
     args = ap.parse_args()
 
-    plot_dataset_grid("alex", args.root, args.outdir / "alexandria_reconstruction_grid.png", args.alex_title)
-    plot_dataset_grid("jarvis", args.root, args.outdir / "jarvis_reconstruction_grid.png", args.jarvis_title)
-
+    plot_dataset_grid(
+        "alex", args.root, args.outdir / "alexandria_reconstruction_grid.png",
+        args.alex_title, ALEX_BINS_A_C, ALEX_BINS_GAM
+    )
+    plot_dataset_grid(
+        "jarvis", args.root, args.outdir / "jarvis_reconstruction_grid.png",
+        args.jarvis_title, JARV_BINS_A_C, JARV_BINS_GAM
+    )
 
 if __name__ == "__main__":
     main()
