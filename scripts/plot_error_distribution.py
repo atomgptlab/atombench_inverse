@@ -193,3 +193,43 @@ out_png = f"{Path.cwd().name}_distribution.png"
 plt.savefig(out_png, format="png")
 plt.close()
 print(f"✓ saved {out_png}")
+import json
+from pathlib import Path
+
+metrics = {
+    # include if you want; otherwise bar_chart.py will fill it from the folder name
+    "benchmark_name": Path.cwd().name,
+    "KLD": {
+        "a": float(kld_a),
+        "b": float(kld_b),
+        "c": float(kld_c),
+        "alpha": float(kld_alpha),
+        "beta": float(kld_beta),
+        "gamma": float(kld_gamma),
+    },
+    # Option A (nested):
+    "MAE": {
+        "average_mae": {
+            "a": float(mae_a),
+            "b": float(mae_b),
+            "c": float(mae_c),
+            "alpha": float(mae_alpha),
+            "beta": float(mae_beta),
+            "gamma": float(mae_gamma),
+        }
+    }
+    # Option B (flat) if you prefer:
+    # "MAE": {
+    #     "a": float(mae_a),
+    #     "b": float(mae_b),
+    #     "c": float(mae_c),
+    #     "alpha": float(mae_alpha),
+    #     "beta": float(mae_beta),
+    #     "gamma": float(mae_gamma),
+    # }
+}
+
+with open("metrics.json", "w") as f:
+    json.dump(metrics, f, indent=2)
+print("✓ wrote metrics.json")
+
