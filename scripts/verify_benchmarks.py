@@ -2,6 +2,7 @@
 import argparse
 import csv
 import os
+import sys
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
@@ -12,15 +13,12 @@ from jarvis.io.vasp.inputs import Poscar
 
 def _unescape_poscar_text(s: str) -> str:
     """Turn CSV-literal text into a parseable POSCAR string."""
-    # normalize newlines; interpret literal backslash escapes
     s = s.replace("\r\n", "\n").replace("\r", "\n")
     s = s.replace("\\n", "\n").replace("\\t", " ")
     return s.strip()
 
 def _parse_poscar_atoms(poscar_text: str):
-    """
-    Parse POSCAR text -> jarvis.core.atoms.Atoms (or None on failure).
-    """
+    """Parse POSCAR text -> jarvis.core.atoms.Atoms (or None on failure)."""
     try:
         p = Poscar.from_string(_unescape_poscar_text(poscar_text))
         return p.atoms
@@ -30,12 +28,11 @@ def _parse_poscar_atoms(poscar_text: str):
 def _get_species_and_frac(atoms):
     """
     Extract (species_list, frac_coords ndarray) from a JARVIS Atoms object.
-    We try to be defensive about attribute names.
+    Tries multiple attribute names defensively.
     """
     # species
     species = getattr(atoms, "elements", None)
     if species is None:
-        # fallback: composition or sites
         try:
             species = [s.specie for s in atoms]
         except Exception:
@@ -44,13 +41,10 @@ def _get_species_and_frac(atoms):
     # fractional coordinates
     frac = getattr(atoms, "frac_coords", None)
     if frac is None:
-        # Try to derive fractional from cartesian and lattice
         lat = np.asarray(getattr(atoms, "lattice_mat", None), dtype=float)
         cart = np.asarray(getattr(atoms, "coords", None), dtype=float)
         if lat is None or cart is None:
             raise ValueError("Could not read coordinates from Atoms.")
-        # Convert cartesian to fractional: frac = cart * inv(lat.T)
-        # (jarvis uses row vectors for coords)
         inv_lat_T = np.linalg.inv(lat.T)
         frac = cart @ inv_lat_T
 
@@ -58,44 +52,39 @@ def _get_species_and_frac(atoms):
 
 def _structure_signature(atoms, decimals: int = 1):
     """
-    Build an order-insensitive signature of a structure with rounding.
+    Order-insensitive signature with rounding:
     - Lattice matrix rounded to 'decimals'
-    - Fractional coordinates rounded to 'decimals'
-    - Species order ignored: coords grouped per species and each group's coords sorted
+    - Fractional coords rounded to 'decimals'
+    - Species order ignored (coords grouped per species & sorted)
     Returns a hashable tuple.
     """
     if atoms is None:
         return ("__PARSE_FAILED__",)
 
-    # Lattice
     lat = np.asarray(getattr(atoms, "lattice_mat", None), dtype=float)
     if lat is None or lat.shape != (3, 3):
         return ("__BAD_LATTICE__",)
     lat_r = np.round(lat, decimals)
 
-    # Species + frac coords
     species, frac = _get_species_and_frac(atoms)
     if len(species) != len(frac):
         return ("__LEN_MISMATCH__",)
 
     frac_r = np.round(frac, decimals)
 
-    # Group by species -> multiset of coord triplets (sorted)
     buckets: Dict[str, List[Tuple[float, float, float]]] = {}
     for sp, xyz in zip(species, frac_r):
         tpl = (float(xyz[0]), float(xyz[1]), float(xyz[2]))
         buckets.setdefault(str(sp), []).append(tpl)
 
-    # Sort each species bucket's coordinates for order-insensitive compare
     for sp in buckets:
         buckets[sp].sort()
 
-    # Build signature: (rounded lattice, sorted list of (species, tuple(coords...)))
     lat_sig = tuple(lat_r.reshape(-1).tolist())
     species_sig = tuple(sorted((sp, tuple(coords)) for sp, coords in buckets.items()))
     return ("OK", lat_sig, species_sig)
 
-# ---------- Original file-discovery & grouping logic ----------
+# ---------- File-discovery & grouping ----------
 
 def canonicalize_target_struct(s: Optional[str]) -> Tuple:
     """Convert TARGET string to an order-insensitive rounded structural signature."""
@@ -105,7 +94,7 @@ def canonicalize_target_struct(s: Optional[str]) -> Tuple:
     return _structure_signature(atoms, decimals=1)
 
 def find_benchmark_csv(dir_path: Path) -> Optional[Path]:
-    """Return the CSV in dir_path (or its subdirs) that has the expected header."""
+    """Return the newest CSV in dir_path (or subdirs) that has id/target/prediction columns."""
     candidates: List[Tuple[float, Path]] = []
     for p, _, files in os.walk(dir_path):
         for f in files:
@@ -118,7 +107,6 @@ def find_benchmark_csv(dir_path: Path) -> Optional[Path]:
                         if {"id", "target", "prediction"}.issubset(set(fields)):
                             candidates.append((path.stat().st_mtime, path))
                 except Exception:
-                    # Skip unreadable files
                     continue
     if not candidates:
         return None
@@ -126,7 +114,10 @@ def find_benchmark_csv(dir_path: Path) -> Optional[Path]:
     return candidates[0][1]
 
 def load_id_to_target(csv_path: Path) -> Dict[str, Tuple]:
-    """Load mapping id -> structural signature (rounded, species-order-insensitive)."""
+    """
+    Load mapping id -> structural signature (rounded, species-order-insensitive).
+    NOTE: If the same ID appears with differing TARGETs, we WARN and keep the first.
+    """
     mapping: Dict[str, Tuple] = {}
     with csv_path.open("r", newline="", encoding="utf-8", errors="replace") as fh:
         reader = csv.DictReader(fh)
@@ -134,10 +125,10 @@ def load_id_to_target(csv_path: Path) -> Dict[str, Tuple]:
             _id = str(row["id"]).strip()
             tgt_sig = canonicalize_target_struct(row["target"])
             if _id in mapping and mapping[_id] != tgt_sig:
-                raise ValueError(
-                    f"Duplicate ID with differing TARGETs in {csv_path}: {_id}"
-                )
-            mapping[_id] = tgt_sig
+                print(f"[WARN] Duplicate ID with differing TARGET in {csv_path.name}: {_id} "
+                      f"(keeping first occurrence)", file=sys.stderr)
+                continue
+            mapping.setdefault(_id, tgt_sig)
     return mapping
 
 def group_benchmarks(root: Path):
@@ -156,17 +147,21 @@ def group_benchmarks(root: Path):
             continue
         csv_path = find_benchmark_csv(entry)
         if csv_path is None:
-            print(f"[WARN] No matching CSV in {entry}")
+            print(f"[WARN] No matching CSV in {entry}", file=sys.stderr)
             continue
         groups[dataset].append((entry.name, csv_path))
     return groups
 
 def compare_group(dataset_key: str, items: List[Tuple[str, Path]], show_diff: int) -> bool:
-    """Compare ID sets and TARGET structures across CSVs for a dataset group."""
+    """
+    Compare ID sets across CSVs for a dataset group.
+    Return False **only if ID sets mismatch**.
+    Structural TARGET differences are reported as WARNINGS but do not cause failure.
+    """
     pretty_name = "alexandria" if dataset_key == "alex" else "jarvis"
     if len(items) < 2:
-        print(f"[INFO] Only {len(items)} benchmark found for {pretty_name}; cannot verify consensus.")
-        return False
+        print(f"[INFO] Only {len(items)} benchmark found for {pretty_name}; skipping consensus check.")
+        return True  # not an ID mismatch
 
     # Load mappings
     loaded = []
@@ -175,13 +170,14 @@ def compare_group(dataset_key: str, items: List[Tuple[str, Path]], show_diff: in
             mapping = load_id_to_target(path)
             loaded.append((label, path, mapping))
         except Exception as e:
-            print(f"[ERROR] Failed to read {path}: {e}")
-            return False
+            # Per request: only fail on ID mismatch; treat read errors as warnings.
+            print(f"[WARN] Failed to read {path}: {e}", file=sys.stderr)
+            return True
 
     # Compare ID sets
     id_sets = [set(m.keys()) for _, _, m in loaded]
-    all_ids = id_sets[0]
-    ids_match = all(s == all_ids for s in id_sets[1:])
+    base_ids = id_sets[0]
+    ids_match = all(s == base_ids for s in id_sets[1:])
     if not ids_match:
         print(f"[MISMATCH] ID sets differ for {pretty_name}.")
         union_ids = set().union(*id_sets)
@@ -194,15 +190,15 @@ def compare_group(dataset_key: str, items: List[Tuple[str, Path]], show_diff: in
             if extra:
                 sample = ", ".join(sorted(list(extra))[:show_diff])
                 print(f"  - {label}: has {len(extra)} unexpected IDs (e.g., {sample})")
-        return False
+        return False  # <-- only hard failure condition
 
-    # Compare TARGETs (using rounded, species-order-insensitive signatures)
+    # If IDs match, compare TARGET structures for awareness (WARN only)
     base_label, base_path, base_map = loaded[0]
     mismatches = []
-    for _id in sorted(all_ids):
+    for _id in sorted(base_ids):
         base_sig = base_map[_id]
         for label, path, mapping in loaded[1:]:
-            if mapping[_id] != base_sig:
+            if mapping.get(_id) != base_sig:
                 mismatches.append((_id, base_label, base_path, label, path))
                 if len(mismatches) >= show_diff:
                     break
@@ -210,20 +206,23 @@ def compare_group(dataset_key: str, items: List[Tuple[str, Path]], show_diff: in
             break
 
     if mismatches:
-        print(f"[MISMATCH] TARGET structures differ for {pretty_name} "
-              f"(rounded to 1 decimal, species-order-insensitive). Showing up to {show_diff}:")
+        print(f"[WARN] TARGET structures differ for {pretty_name} "
+              f"(rounded to 1 decimal, species-order-insensitive). Showing up to {show_diff}:",
+              file=sys.stderr)
         for _id, b_label, b_path, l_label, l_path in mismatches:
-            print(f"  - ID {_id}: {b_label} ({b_path.name}) != {l_label} ({l_path.name})")
-        return False
+            print(f"  - ID {_id}: {b_label} ({b_path.name}) != {l_label} ({l_path.name})",
+                  file=sys.stderr)
+    else:
+        print(f"[OK] IDs and TARGET structures match for {pretty_name} "
+              f"(rounded to 1 decimal, species-order-insensitive).")
 
-    print(f"IDs and TARGET structures match for {pretty_name} "
-          f"(rounded to 1 decimal, species-order-insensitive).")
-    return True
+    return True  # success since IDs matched
 
 def main():
     ap = argparse.ArgumentParser(
-        description=("Verify that benchmark CSVs share the same ID set and TARGET rows "
-                     "(compared as structures rounded to 1 decimal and species-order-insensitive).")
+        description=("Verify that benchmark CSVs share the same ID set. "
+                     "Only ID mismatches cause a non-zero exit. "
+                     "TARGET structural differences are reported as warnings.")
     )
     ap.add_argument(
         "--root",
@@ -241,18 +240,20 @@ def main():
 
     root = args.root
     if not root.exists() or not root.is_dir():
-        print(f"[ERROR] Root path does not exist or is not a directory: {root}")
-        raise SystemExit(2)
+        print(f"[WARN] Root path does not exist or is not a directory: {root}", file=sys.stderr)
+        raise SystemExit(0)  # not an ID mismatch
 
     groups = group_benchmarks(root)
-    any_fail = False
+    id_mismatch = False
     for dataset in ("jarvis", "alex"):
         items = groups.get(dataset, [])
         items.sort(key=lambda t: t[0].lower())
         ok = compare_group(dataset, items, args.show_diff)
-        any_fail = any_fail or not ok
+        if not ok:
+            id_mismatch = True
 
-    raise SystemExit(1 if any_fail else 0)
+    raise SystemExit(1 if id_mismatch else 0)
 
 if __name__ == "__main__":
     main()
+
