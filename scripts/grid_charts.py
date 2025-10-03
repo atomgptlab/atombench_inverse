@@ -28,8 +28,10 @@ mpl.rcParams.update({
     "axes.linewidth": 1.4,
     "axes.titleweight": "bold",
     "patch.linewidth": 0.0,      # softer, less “boxy” fills
-    "patch.joinstyle": "round",
-    "patch.capstyle": "round",
+    # NOTE: 'patch.joinstyle' and 'patch.capstyle' are NOT valid rcParams.
+    # Use line join/cap styles instead (valid), and keep patch edges off.
+    "lines.solid_joinstyle": "round",
+    "lines.solid_capstyle": "round",
 })
 
 WVU_BLUE = "#002855"  # target
@@ -155,8 +157,7 @@ def plot_dataset_grid(tag: str,
     """Build a 3×3 grid for one dataset tag ('alex' or 'jarvis')."""
     model_dirs = discover_model_dirs(root, tag)
 
-    # Smaller, tighter figure. We'll control margins to keep the right-side ylabel
-    # clearly separated from the panels (no overlap).
+    # Smaller, tighter figure. Keep right-side ylabel outside panels.
     fig, axes = plt.subplots(3, 3, figsize=(8.8, 5.6))
     fig.subplots_adjust(
         left=0.08, right=0.88, bottom=0.12, top=0.86,
@@ -199,7 +200,7 @@ def plot_dataset_grid(tag: str,
             wt_t = _weights_percent(len(xt))
             wt_p = _weights_percent(len(xp))
 
-            # Less “rectangular”: stepfilled with rounded joins; no edges.
+            # Less “rectangular”: filled without edges; transparency softens blockiness
             ax.hist(xt, bins=bins, weights=wt_t,
                     histtype="stepfilled", alpha=0.68, color=WVU_BLUE,
                     edgecolor="none", label="target")
@@ -219,7 +220,7 @@ def plot_dataset_grid(tag: str,
         leg = axes[0, 0].legend(handles, labels, frameon=True, fontsize=12)
         leg.get_frame().set_alpha(0.95)
 
-    # bold suptitle & global right-side y-label (kept outside the panels)
+    # bold suptitle & global right-side y-label
     fig.suptitle(title, fontsize=22, fontweight="bold")
     fig.text(0.93, 0.5, "Materials Percentage (%)",
              rotation=90, va="center", ha="center",
