@@ -105,7 +105,7 @@ rule verify_benchmarks:
         touch("benchmarks.verified")
     shell:
         """
-        bash scripts/verify_benchmarks.py --root job_runs/
+        python scripts/verify_benchmarks.py --root job_runs/
         """
 
 rule make_bar_charts:
