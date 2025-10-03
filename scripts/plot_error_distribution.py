@@ -193,42 +193,48 @@ out_png = f"{Path.cwd().name}_distribution.png"
 plt.savefig(out_png, format="png")
 plt.close()
 print(f"✓ saved {out_png}")
-import json
-from pathlib import Path
+# ── Metrics (match reference script exactly) ───────────────────────────────
+# MAE on raw arrays
+mae_a     = float(mean_absolute_error(x_a, y_a))
+mae_b     = float(mean_absolute_error(x_b, y_b))
+mae_c     = float(mean_absolute_error(x_c, y_c))
+mae_alpha = float(mean_absolute_error(x_alpha, y_alpha))
+mae_beta  = float(mean_absolute_error(x_beta,  y_beta))
+mae_gamma = float(mean_absolute_error(x_gamma, y_gamma))
 
+# KLD on raw value arrays normalized by their sums (no bins)
+# Uses the kl_divergence(p,q) you already defined above:
+#   p = np.asarray(p, np.float64); q = np.asarray(q, np.float64)
+#   p /= p.sum(); q /= q.sum(); return stats.entropy(p,q)
+kld_a     = float(kl_divergence(x_a,     y_a))
+kld_b     = float(kl_divergence(x_b,     y_b))
+kld_c     = float(kl_divergence(x_c,     y_c))
+kld_alpha = float(kl_divergence(x_alpha, y_alpha))
+kld_beta  = float(kl_divergence(x_beta,  y_beta))
+kld_gamma = float(kl_divergence(x_gamma, y_gamma))
+
+# ── Write metrics.json in the schema expected by bar_chart.py ─────────────
 metrics = {
-    # include if you want; otherwise bar_chart.py will fill it from the folder name
     "benchmark_name": Path.cwd().name,
     "KLD": {
-        "a": float(kld_a),
-        "b": float(kld_b),
-        "c": float(kld_c),
-        "alpha": float(kld_alpha),
-        "beta": float(kld_beta),
-        "gamma": float(kld_gamma),
+        "a":     kld_a,
+        "b":     kld_b,
+        "c":     kld_c,
+        "alpha": kld_alpha,
+        "beta":  kld_beta,
+        "gamma": kld_gamma,
     },
-    # Option A (nested):
     "MAE": {
         "average_mae": {
-            "a": float(mae_a),
-            "b": float(mae_b),
-            "c": float(mae_c),
-            "alpha": float(mae_alpha),
-            "beta": float(mae_beta),
-            "gamma": float(mae_gamma),
+            "a":     mae_a,
+            "b":     mae_b,
+            "c":     mae_c,
+            "alpha": mae_alpha,
+            "beta":  mae_beta,
+            "gamma": mae_gamma,
         }
     }
-    # Option B (flat) if you prefer:
-    # "MAE": {
-    #     "a": float(mae_a),
-    #     "b": float(mae_b),
-    #     "c": float(mae_c),
-    #     "alpha": float(mae_alpha),
-    #     "beta": float(mae_beta),
-    #     "gamma": float(mae_gamma),
-    # }
 }
-
 with open("metrics.json", "w") as f:
     json.dump(metrics, f, indent=2)
 print("✓ wrote metrics.json")
