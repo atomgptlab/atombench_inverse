@@ -19,6 +19,7 @@ rule all:
         "charts.made",
         "overlay_charts.created",
         "benchmarks.verified"
+	"grid_charts.created"
 
 rule make_atomgpt_env:
     output:
@@ -127,3 +128,12 @@ rule make_overlay_charts:
         bash scripts/make_overlay_charts.sh
         """
 
+rule make grid_charts:
+    input:
+	"metrics.computed"
+    output:
+	touch("grid_charts.created")
+    shell:
+	"""
+	python scripts/grid_charts.py
+	"""
