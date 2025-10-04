@@ -25,11 +25,10 @@ from jarvis.io.vasp.inputs import Poscar
 # ───────────────────────── visual style ─────────────────────────
 mpl.rcParams.update({
     "font.family": "serif",
-    "axes.linewidth": 1.4,
-    "axes.titleweight": "bold",
-    "patch.linewidth": 0.0,      # softer, less “boxy” fills
-    "patch.joinstyle": "round",
-    "patch.capstyle": "round",
+    "axes.linewidth": 0.8,
+    #"axes.titleweight": "bold",
+    "patch.linewidth": 0.0,
+    "font.serif": ["Times New Roman", "Times", "Nimbus Roman No9 L", "DejaVu Serif", "STIX"],
 })
 
 WVU_BLUE = "#002855"  # target
@@ -42,11 +41,11 @@ PARAM_LABEL = {"a": r"$a$ (Å)", "c": r"$c$ (Å)", "gamma": r"$\gamma$ (°)"}
 
 # ── HARD-CODED BINS (uniform within each PNG) ─────────────────────────────
 # Alexandria: finer for a/c, wide for γ
-ALEX_BINS_A_C = np.arange(2.0, 7.0 + 1e-9, 0.20)     # width = 0.20 Å
-ALEX_BINS_GAM  = np.arange(30.0, 140.0 + 1e-9, 10.0) # width = 10°
+ALEX_BINS_A_C = np.arange(2.0, 10.0 + 1e-9, 0.10)     # width = 0.20 Å
+ALEX_BINS_GAM  = np.arange(30.0, 140.0 + 1e-9, 8.0) # width = 10°
 # JARVIS: slightly coarser for a/c given size, γ same width
-JARV_BINS_A_C  = np.arange(2.0, 7.0 + 1e-9, 0.25)    # width = 0.25 Å
-JARV_BINS_GAM  = np.arange(40.0, 140.0 + 1e-9, 10.0) # width = 10°
+JARV_BINS_A_C  = np.arange(2.0, 10.0 + 1e-9, 0.15)    # width = 0.25 Å
+JARV_BINS_GAM  = np.arange(30.0, 140.0 + 1e-9, 10.0) # width = 10°
 
 # ───────────────────── discovery helpers ─────────────────────
 def find_benchmark_csv(dir_path: Path) -> Optional[Path]:
@@ -129,8 +128,9 @@ def _weights_percent(n: int) -> np.ndarray:
 def style_axes(ax: plt.Axes, left_col: bool, bottom_row: bool) -> None:
     """Salient ticks/labels, minimal clutter."""
     ax.tick_params(axis="both", which="major", labelsize=12, width=1.4, length=7)
-    ax.tick_params(axis="both", which="minor", width=1.0, length=4)
-    ax.minorticks_on()
+    ax.tick_params(axis="y", which="both", left=False)
+    #ax.tick_params(axis="both", which="minor", width=1.0, length=4)
+    ax.minorticks_off()
     if not left_col:
         ax.set_yticklabels([])
     if not bottom_row:
@@ -142,8 +142,8 @@ def annotate_kld(ax: plt.Axes, value: Optional[float]) -> None:
     ax.text(
         0.97, 0.92, f"KLD = {value:.3f}",
         transform=ax.transAxes, ha="right", va="top",
-        fontsize=13, fontweight="bold",
-        bbox=dict(boxstyle="round,pad=0.35", fc="white", ec=WVU_BLUE, lw=1.2, alpha=0.95),
+        fontsize=9,
+        bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="black", lw=0.8, alpha=0.95),
     )
 
 def plot_dataset_grid(tag: str,
@@ -157,15 +157,21 @@ def plot_dataset_grid(tag: str,
 
     # Smaller, tighter figure. We'll control margins to keep the right-side ylabel
     # clearly separated from the panels (no overlap).
-    fig, axes = plt.subplots(3, 3, figsize=(8.8, 5.6))
+    fig, axes = plt.subplots(3, 3, figsize=(9, 7))
+    # remove all y-axis labels and tick labels
+    for ax in axes.ravel():
+        ax.set_ylabel("")                                # kill axis label
+        ax.tick_params(axis="y", which="both",
+                    left=False, right=False,          # no tick marks
+                    labelleft=False, labelright=False)  # no numbers
     fig.subplots_adjust(
         left=0.08, right=0.88, bottom=0.12, top=0.86,
-        wspace=0.28, hspace=0.30
+        wspace=0.10, hspace=0.30
     )
 
     # column titles — extra salient
-    for c, p in enumerate(PARAMS):
-        axes[0, c].set_title(PARAM_LABEL[p], fontsize=18, fontweight="bold", pad=8)
+    #for c, p in enumerate(PARAMS):
+        #axes[0, c].set_title(PARAM_LABEL[p], fontsize=18, pad=7)
 
     for r, model in enumerate(MODELS):
         axrow = axes[r]
@@ -185,7 +191,7 @@ def plot_dataset_grid(tag: str,
         for c, param in enumerate(PARAMS):
             ax = axrow[c]
             if c == 0:
-                ax.set_ylabel(label, fontsize=16, fontweight="bold")
+                ax.set_ylabel(label, fontsize=22)
 
             if series is None or not series["target"][param] or not series["predicted"][param]:
                 ax.text(0.5, 0.5, "no data", ha="center", va="center", fontsize=12, alpha=0.7)
@@ -208,7 +214,7 @@ def plot_dataset_grid(tag: str,
                     edgecolor="none", label="predicted")
 
             if r == 2:
-                ax.set_xlabel(PARAM_LABEL[param], fontsize=14, fontweight="bold")
+                ax.set_xlabel(PARAM_LABEL[param], fontsize=14)
 
             style_axes(ax, left_col=(c == 0), bottom_row=(r == 2))
             annotate_kld(ax, klds.get(param))
@@ -218,12 +224,15 @@ def plot_dataset_grid(tag: str,
     if handles:
         leg = axes[0, 0].legend(handles, labels, frameon=True, fontsize=12)
         leg.get_frame().set_alpha(0.95)
+        leg.get_frame().set_facecolor("white")
+        leg.get_frame().set_edgecolor("black")
+        leg.get_frame().set_linewidth(0.6)
 
     # bold suptitle & global right-side y-label (kept outside the panels)
-    fig.suptitle(title, fontsize=22, fontweight="bold")
-    fig.text(0.93, 0.5, "Materials Percentage (%)",
-             rotation=90, va="center", ha="center",
-             fontsize=14, fontweight="bold")
+    fig.suptitle(title, fontsize=28, y=0.93)
+    fig.text(0.91, 0.5, "Materials Percentage (%)",
+             rotation=270, va="center", ha="center",
+             fontsize=20)
 
     out_png.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_png, dpi=200, bbox_inches="tight")
