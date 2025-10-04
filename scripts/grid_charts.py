@@ -44,7 +44,7 @@ PARAM_LABEL = {"a": r"$a$ (Å)", "c": r"$c$ (Å)", "gamma": r"$\gamma$ (°)"}
 ALEX_BINS_A_C = np.arange(2.0, 10.0 + 1e-9, 0.10)     # width = 0.20 Å
 ALEX_BINS_GAM  = np.arange(30.0, 140.0 + 1e-9, 8.0) # width = 10°
 # JARVIS: slightly coarser for a/c given size, γ same width
-JARV_BINS_A_C  = np.arange(2.0, 10.0 + 1e-9, 0.15)    # width = 0.25 Å
+JARV_BINS_A_C  = np.arange(2.0, 10.0 + 1e-9, 0.25)    # width = 0.25 Å
 JARV_BINS_GAM  = np.arange(30.0, 140.0 + 1e-9, 10.0) # width = 10°
 
 # ───────────────────── discovery helpers ─────────────────────
