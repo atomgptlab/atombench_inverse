@@ -17,6 +17,8 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from jarvis.analysis.structure.spacegroup import Spacegroup3D
 import pandas as pd
 from jarvis.io.vasp.inputs import Poscar
+from functools import lru_cache
+from pymatgen.core import Structure
 
 # ── Matplotlib defaults ────────────────────────────────────────────────────
 mpl.rcParams['font.family'] = 'serif'
@@ -27,6 +29,15 @@ fig = plt.figure(figsize=(14, 8))
 the_grid = GridSpec(2, 3)
 
 # ── Helper functions ──────────────────────────────────────────────────────
+@lru_cache(maxsize=4096)
+def niggli_params_from_poscar_text(poscar_text: str):
+    s = Structure.from_str(poscar_text.replace("\\n", "\n"), fmt="poscar")
+    s = s.get_primitive_structure()
+    s = s.get_reduced_structure(reduction_algo="niggli")  # Niggli canonical cell
+    a, b, c = s.lattice.abc
+    alpha, beta, gamma = s.lattice.angles
+    return a, b, c, alpha, beta, gamma
+
 def emd_distance(p, q, bins=None):
     p = np.asarray(p, dtype=np.float64)
     q = np.asarray(q, dtype=np.float64)
@@ -44,22 +55,27 @@ def kl_divergence(p, q):
     return stats.entropy(p, q)
 
 # ── Load data ─────────────────────────────────────────────────────────────
+# ── Load data & extract Niggli-reduced params ─────────────────────────────
 df = pd.read_csv("AI-AtomGen-prop-dft_3d-test-rmse.csv")
-records = []
-for _, row in df.iterrows():
-    rec = {
-        "target":    Poscar.from_string(row['target'].replace("\\n", "\n")).atoms.to_dict(),
-        "predicted": Poscar.from_string(row['prediction'].replace("\\n", "\n")).atoms.to_dict()
-    }
-    records.append(rec)
 
-# ── Extract targets / predictions for lattice params & angles ─────────────
-x_a, y_a = [r["target"]["abc"][0]   for r in records], [r["predicted"]["abc"][0]   for r in records]
-x_b, y_b = [r["target"]["abc"][1]   for r in records], [r["predicted"]["abc"][1]   for r in records]
-x_c, y_c = [r["target"]["abc"][2]   for r in records], [r["predicted"]["abc"][2]   for r in records]
-x_alpha, y_alpha = [r["target"]["angles"][0] for r in records], [r["predicted"]["angles"][0] for r in records]
-x_beta,  y_beta  = [r["target"]["angles"][1] for r in records], [r["predicted"]["angles"][1] for r in records]
-x_gamma, y_gamma = [r["target"]["angles"][2] for r in records], [r["predicted"]["angles"][2] for r in records]
+x_a, x_b, x_c, x_alpha, x_beta, x_gamma = [], [], [], [], [], []
+y_a, y_b, y_c, y_alpha, y_beta, y_gamma = [], [], [], [], [], []
+
+for _, row in df.iterrows():
+    try:
+        ta, tb, tc, tal, tbe, tga = niggli_params_from_poscar_text(row["target"])
+        pa, pb, pc, pal, pbe, pga = niggli_params_from_poscar_text(row["prediction"])
+
+        x_a.append(ta);     y_a.append(pa)
+        x_b.append(tb);     y_b.append(pb)
+        x_c.append(tc);     y_c.append(pc)
+        x_alpha.append(tal); y_alpha.append(pal)
+        x_beta.append(tbe);  y_beta.append(pbe)
+        x_gamma.append(tga); y_gamma.append(pga)
+
+    except Exception:
+        # skip malformed rows but keep going
+        continue
 
 # ── Histogram helper (avoid repetition) ───────────────────────────────────
 def overlay_hist(ax, x, y, bins, xlabel, title):
