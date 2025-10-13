@@ -3,8 +3,8 @@
 #SBATCH --job-name=agpt_alex
 #SBATCH --nodes=1                         
 #SBATCH --gres=gpu:1
-#SBATCH --ntasks-per-node=4                # Run 4 tasks (processes) on the node
-#SBATCH --cpus-per-task=2                  # 2 CPU cores per task (for multi‐threaded code)
+#SBATCH --ntasks-per-node=1             
+#SBATCH --cpus-per-task=8
 #SBATCH --time=08:00:00                    # Max walltime (HH:MM:SS)
 #SBATCH --mem=8G                           # Total RAM for the job (8 GB)
 
