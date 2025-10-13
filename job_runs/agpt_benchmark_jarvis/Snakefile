@@ -1,6 +1,6 @@
 rule train_atomgpt_jarvis:
     output:
-        touch("agpt_benchmark_jarvis.final")
+        touch("sentinels/agpt_benchmark_jarvis.final")
     input:
         "atomgpt_env.created",
         "jarvis_data.created"

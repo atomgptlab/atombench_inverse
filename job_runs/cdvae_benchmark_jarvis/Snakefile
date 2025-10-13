@@ -1,9 +1,9 @@
 rule train_cdvae_jarvis:
     output:
-        touch("cdvae_benchmark_jarvis.trained")
+        touch("sentinels/cdvae_benchmark_jarvis.trained")
     input:
-        "cdvae_env.created",
-        "jarvis_data.created"
+        "sentinels/cdvae_env.created",
+        "sentinels/jarvis_data.created"
     shell:
         """
         sbatch --wait job_runs/cdvae_benchmark_jarvis/train_cdvae.job
@@ -11,11 +11,11 @@ rule train_cdvae_jarvis:
 
 rule infer_cdvae_jarvis:
     output:
-        touch("cdvae_benchmark_jarvis.inferred")
+        touch("sentinels/cdvae_benchmark_jarvis.inferred")
     input:
-        "cdvae_env.created",
-        "jarvis_data.created",
-        "cdvae_benchmark_jarvis.trained"
+        "sentinels/cdvae_env.created",
+        "sentinels/jarvis_data.created",
+        "sentinels/cdvae_benchmark_jarvis.trained"
     shell:
         """
         sbatch --wait job_runs/cdvae_benchmark_jarvis/inference_cdvae.job
@@ -23,12 +23,12 @@ rule infer_cdvae_jarvis:
 
 rule benchmark_cdvae_jarvis:
     output:
-        touch("cdvae_benchmark_jarvis.final")
+        touch("sentinels/cdvae_benchmark_jarvis.final")
     input:
-        "cdvae_env.created",
-        "jarvis_data.created",
-        "cdvae_benchmark_jarvis.trained",
-        "cdvae_benchmark_jarvis.inferred"
+        "sentinels/cdvae_env.created",
+        "sentinels/jarvis_data.created",
+        "sentinels/cdvae_benchmark_jarvis.trained",
+        "sentinels/cdvae_benchmark_jarvis.inferred"
 
     shell:
         """
