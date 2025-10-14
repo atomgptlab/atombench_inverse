@@ -1,10 +1,9 @@
-# job_runs/cdvae_benchmark_alex/Snakefile
 rule train_cdvae_alex:
     output:
-        touch("sentinels/cdvae_benchmark_alex.trained")
+        touch("cdvae_benchmark_alex.trained")
     input:
-        "sentinels/cdvae_env.created",
-        "sentinels/alex_data.created"
+        "cdvae_env.created",
+        "alex_data.created"
     shell:
         """
         sbatch --wait job_runs/cdvae_benchmark_alex/train_cdvae.job
@@ -12,11 +11,11 @@ rule train_cdvae_alex:
 
 rule infer_cdvae_alex:
     output:
-        touch("sentinels/cdvae_benchmark_alex.inferred")
+        touch("cdvae_benchmark_alex.inferred")
     input:
-        "sentinels/cdvae_env.created",
-        "sentinels/alex_data.created",
-        "sentinels/cdvae_benchmark_alex.trained"
+        "cdvae_env.created",
+        "alex_data.created",
+        "cdvae_benchmark_alex.trained"
     shell:
         """
         sbatch --wait job_runs/cdvae_benchmark_alex/inference_cdvae.job
@@ -24,14 +23,14 @@ rule infer_cdvae_alex:
 
 rule benchmark_cdvae_alex:
     output:
-        touch("sentinels/cdvae_benchmark_alex.final")
+        touch("cdvae_benchmark_alex.final")
     input:
-        "sentinels/cdvae_env.created",
-        "sentinels/alex_data.created",
-        "sentinels/cdvae_benchmark_alex.trained",
-        "sentinels/cdvae_benchmark_alex.inferred"
+        "cdvae_env.created",
+        "alex_data.created",
+        "cdvae_benchmark_alex.trained",
+        "cdvae_benchmark_alex.inferred"
+
     shell:
         """
         sbatch --wait job_runs/cdvae_benchmark_alex/benchmark_cdvae.job
         """
-

@@ -1,11 +1,10 @@
-# job_runs/flowmm_benchmark_alex/Snakefile
 rule train_flowmm_alex:
     output:
-        touch("sentinels/flowmm_benchmark_alex.trained")
+        touch("flowmm_benchmark_alex.trained")
     input:
-        "sentinels/flowmm_env.created",
-        "sentinels/alex_data.created",
-        "sentinels/flowmm_yamls.created"
+        "flowmm_env.created",
+        "alex_data.created",
+        "flowmm_yamls.created"
     shell:
         """
         sbatch --wait job_runs/flowmm_benchmark_alex/train_flowmm.job
@@ -13,12 +12,12 @@ rule train_flowmm_alex:
 
 rule infer_flowmm_alex:
     output:
-        touch("sentinels/flowmm_benchmark_alex.inferred")
+        touch("flowmm_benchmark_alex.inferred")
     input:
-        "sentinels/flowmm_env.created",
-        "sentinels/alex_data.created",
-        "sentinels/flowmm_benchmark_alex.trained",
-        "sentinels/flowmm_yamls.created"
+        "flowmm_env.created",
+        "alex_data.created",
+        "flowmm_benchmark_alex.trained",
+        "flowmm_yamls.created"
     shell:
         """
         sbatch --wait job_runs/flowmm_benchmark_alex/inference_flowmm.job
@@ -26,15 +25,14 @@ rule infer_flowmm_alex:
 
 rule benchmark_flowmm_alex:
     output:
-        touch("sentinels/flowmm_benchmark_alex.final")
+        touch("flowmm_benchmark_alex.final")
     input:
-        "sentinels/flowmm_env.created",
-        "sentinels/alex_data.created",
-        "sentinels/flowmm_benchmark_alex.trained",
-        "sentinels/flowmm_benchmark_alex.inferred",
-        "sentinels/flowmm_yamls.created"
+        "flowmm_env.created",
+        "alex_data.created",
+        "flowmm_benchmark_alex.trained",
+        "flowmm_benchmark_alex.inferred",
+        "flowmm_yamls.created"
     shell:
         """
         bash job_runs/flowmm_benchmark_alex/write_benchmark.sh
         """
-
