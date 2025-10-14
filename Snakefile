@@ -19,7 +19,7 @@ rule all:
         "charts.made",
         "overlay_charts.created",
         "benchmarks.verified",
-        "grid_charts.created"
+        "grid_charts.created",
         "rmse_chart.made"
 
 rule make_atomgpt_env:
