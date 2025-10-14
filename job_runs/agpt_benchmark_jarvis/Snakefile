@@ -1,3 +1,4 @@
+# job_runs/agpt_benchmark_jarvis/Snakefile
 rule train_atomgpt_jarvis:
     output:
         touch("agpt_benchmark_jarvis.final")
@@ -8,3 +9,4 @@ rule train_atomgpt_jarvis:
         """
         sbatch --wait --gres=gpu:nvidia_a40 job_runs/agpt_benchmark_jarvis/train_atomgpt.job
         """
+

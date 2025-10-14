@@ -1,3 +1,4 @@
+# job_runs/agpt_benchmark_alex/Snakefile
 rule train_atomgpt_alex:
     output:
         touch("agpt_benchmark_alex.final")
@@ -8,3 +9,4 @@ rule train_atomgpt_alex:
         """
         sbatch --wait --gres=gpu:nvidia_a40 --time=2-00:00:00 job_runs/agpt_benchmark_alex/train_atomgpt.job
         """
+
