@@ -40,6 +40,7 @@ MODELS = ["agpt", "cdvae", "flowmm"]
 MODEL_LABEL = {"agpt": "AtomGPT", "cdvae": "CDVAE", "flowmm": "FlowMM"}
 PARAMS = ["a", "c", "gamma"]
 PARAM_LABEL = {"a": r"$a$ (Å)", "c": r"$c$ (Å)", "gamma": r"$\gamma$ (°)"}
+PANEL_LETTERS = [f"({chr(97+i)})" for i in range(9)]
 
 # ── HARD-CODED BINS (uniform within each PNG) ─────────────────────────────
 # Alexandria: finer for a/c, wide for γ
@@ -158,6 +159,13 @@ def annotate_kld(ax: plt.Axes, value: Optional[float]) -> None:
         bbox=dict(boxstyle="round,pad=0.35", fc="white", ec="black", lw=0.8, alpha=0.95),
     )
 
+def annotate_panel_label(ax: plt.Axes, label: str) -> None:
+    ax.text(
+        0.03, 0.92, label,          
+        transform=ax.transAxes, ha="left", va="top",
+        fontsize=9,                     
+    )                                                                   
+
 def plot_dataset_grid(tag: str,
                       root: Path,
                       out_png: Path,
@@ -202,6 +210,7 @@ def plot_dataset_grid(tag: str,
 
         for c, param in enumerate(PARAMS):
             ax = axrow[c]
+            annotate_panel_label(ax, PANEL_LETTERS[r*3 + c])
             if c == 0:
                 ax.set_ylabel(label, fontsize=22)
 
