@@ -139,10 +139,10 @@ rule make_grid_charts:
         """
 
 rule make_rmse_chart:
-    input:  
-	"metrics.computed"
-    output: 
-	touch("rmse_chart.made")
-    shell:  
-	"cd job_runs/ && python ../scripts/rmse_bar_chart.py"
+    input:
+        "metrics.computed"
+    output:
+        touch("rmse_chart.made")
+    shell:
+        "cd job_runs/ && python ../scripts/rmse_bar_chart.py"
 
