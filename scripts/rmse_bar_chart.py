@@ -126,7 +126,7 @@ ax.legend(handles=handles, title_fontsize=15, fontsize=15)
 style_axes(
     ax,
     ylabel='Root Mean Squared Error (Å)',
-    title='Average Root Mean Squared Error for Predicted vs. Target Atomic Coordinates'
+    title='Average Root Mean Squared Error \nfor Predicted vs. Target Atomic Coordinates'
 )
 
 out_path = ROOT / 'rmse_bar_chart.png'
