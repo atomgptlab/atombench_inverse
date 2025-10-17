@@ -1,8 +1,6 @@
-# benchmarks
+# Atombench
 
-#### Coming soon: CrystalGen software in [github.com/atomgptlab](https://github.com/atomgptlab/) that automates benchmark experiments and machine learning crystal structure generation!
-
-![Poster](poster.png)
+The rapid development of generative AI models for materials discovery has created an urgent need for standardized benchmarks to evaluate their performance. In this work, we present $\textbf{AtomBench}$, a systematic benchmarking framework that comparatively evaluates three representative generative architectures-AtomGPT (transformer-based), CDVAE (diffusion variational autoencoder), and FlowMM (Riemannian flow matching)-for inverse crystal structure design. We train and evaluate these models on two high-quality DFT superconductivity datasets: JARVIS Supercon-3D and Alexandria DS-A/B, comprising over 9,000 structures with computed electron-phonon coupling properties.
 
 ## Install dependencies
 1) Install models as submodules
@@ -25,4 +23,5 @@ snakemake all --cores all
 ### [AtomGPT](https://github.com/knc6/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/atomgpt_example.ipynb)
 ### [CDVAE](https://github.com/crhysc/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/cdvae_example.ipynb)
 ### [FlowMM](https://github.com/crhysc/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/flowmm_example.ipynb)
+
 
