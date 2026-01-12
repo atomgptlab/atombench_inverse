@@ -52,6 +52,11 @@ vi scripts/absolute_path.sh
 ```
 then,
 ```bash
+(atombench) [user@hpc-cluster atombench]$ pwd
+/path/to/this/repository
+```
+finally,
+```bash
 #!/bin/bash
 export ABS_PATH="path/to/this/repository"
 ```
