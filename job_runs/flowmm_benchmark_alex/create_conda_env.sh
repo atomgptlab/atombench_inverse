@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- keepalive: print once per minute so nothing thinks we're dead ---
+( while true; do echo "[flowmm env] still working... $(date)"; sleep 60; done ) &
+KEEPALIVE_PID=$!
+trap 'kill "$KEEPALIVE_PID" 2>/dev/null || true' EXIT
+
 # Optional: fail with a helpful message if a non-conda dir exists at the target prefix
 if conda env list | awk '{print $1}' | grep -qx flowmm; then
   : # ok, env name already registered with conda
