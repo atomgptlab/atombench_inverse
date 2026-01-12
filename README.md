@@ -76,4 +76,35 @@ snakemake -p --verbose all --cores all
 ### [CDVAE](https://github.com/crhysc/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/cdvae_example.ipynb)
 ### [FlowMM](https://github.com/crhysc/jarvis-tools-notebooks/blob/master/jarvis-tools-notebooks/flowmm_example.ipynb)
 
+## Manual Recovery if the Snakemake Pipeline Fails
+
+In some HPC environments, long-running jobs or interactive installations may cause the `Snakemake` pipeline to terminate prematurely, even though the underlying computation would eventually complete. In these cases, the benchmarks can still be recomputed manually while preserving compatibility with the automated pipeline.
+
+To see the next jobs that need to be executed to satisfy the `all` rule, run a dry run:
+```bash
+snakemake -n all
+```
+
+If you want a more concise view that focuses on the next jobs without extra log output, use:
+```bash
+snakemake -n --quiet all
+```
+
+Each benchmark job can be executed manually by navigating to the corresponding directory under `job_runs/` and running the relevant scripts directly (e.g., via `bash` or `python`, depending on the job). Once a job has completed successfully, you must explicitly mark it as finished by creating its expected output file in the root directory of the repository using `touch`. For example:
+```bash
+touch agpt_benchmark_jarvis.final
+```
+
+This signals to `Snakemake` that the job’s outputs exist and that the rule should be considered complete.
+
+To see the rest of the remaining pipeline after manually completing one or more jobs, rerun the dry run:
+```bash
+snakemake -n all
+```
+
+`Snakemake` will exclude the completed jobs and report only the remaining missing targets. This process can be repeated iteratively until all benchmarks have been completed and the `all` rule is satisfied.
+
+This manual fallback preserves the dependency structure and bookkeeping guarantees of `Snakemake` while allowing recovery from transient scheduler, environment, or responsiveness issues common on shared HPC systems.
+
+
 
