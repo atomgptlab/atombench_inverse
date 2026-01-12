@@ -17,13 +17,8 @@ To recompute the benchmarks, the generative models need to be downloaded into th
 git submodule update --init --recursive
 ```
 
-#### Step 3: Install `mamba`
-Setting up the correct environments for some of the generative models can take quite a while, so we speed up this process by using `mamba` instead of `conda` for intensive tasks. Download `mamba` using the following command:
-```bash
-conda install -n base -c conda-forge mamba
-```
 
-#### Step 4: Create and activate a `conda` environment to host Atombench Python dependencies
+#### Step 3: Create and activate a `conda` environment to host Atombench Python dependencies
 Normally, it is best-practice to avoid installing Python packages to one's base `conda` environment. Make an environment to store required Python deps:
 ```bash
 conda create --name atombench python=3.11 -y
@@ -31,7 +26,7 @@ conda activate atombench
 ```
 NOTE: Becayse we are including `python=3.11` in the `conda create` command, we can use both `conda install` and `pip install` to install Python packages into the newly created `atombench` environment.
 
-#### Step 5: Download Python dependencies
+#### Step 4: Download Python dependencies
 This repository recomputes the AtomBench benchmarks using a semi-automated `Snakemake` pipeline. For more information about `Snakemake`, visit their [documentation](https://snakemake.readthedocs.io/en/stable/) site. Moreover, we use `uv` to speed up downstream package installation, and we use `DVC` to automate dataset preprocessing.
 ```bash
 pip install uv snakemake dvc
