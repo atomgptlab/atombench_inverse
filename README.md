@@ -4,11 +4,11 @@ The rapid development of generative AI models for materials discovery has create
 
 ## Installation Instructions
 #### Step 1: Confirm operating system, workload manager, and Python package manager
-This repo is built for Linux-based High-Performance Computing (HPC) clusters that use the SLURM workload manager and provide a CUDA 11.8 module. It will not run on MacOS devices, Windows devices, and non-SLURM HPC clusters. A valid conda installation is also required, and it must have the capacity to be initialized using the Conda shell integration hook via the following command:
+This repo is built for Linux-based High-Performance Computing (HPC) clusters that use the SLURM workload manager and provide a CUDA 11.8 module. It will not run on MacOS devices, Windows devices, and non-SLURM HPC clusters. A valid `conda` installation is also required, and it must have the capacity to be initialized using the `conda` shell integration hook via the following command:
 ```bash
 eval "$(conda shell.bash hook)"
 ```
-Documentation about activating Conda environments using this command can be found [here](https://docs.conda.io/projects/conda/en/latest/dev-guide/deep-dives/activation.html). To verify that using the shell hook works, running `conda deactivate` should remove the `(base)` prefix, and running `eval "$(conda shell.bash hook)"` should re-add the `(base)` prefix:
+Documentation about activating `conda` environments using this command can be found [here](https://docs.conda.io/projects/conda/en/latest/dev-guide/deep-dives/activation.html). To verify that using the shell hook works, running `conda deactivate` should remove the `(base)` prefix, and running `eval "$(conda shell.bash hook)"` should re-add the `(base)` prefix:
 ```bash
 (base) [user@hpc-cluster ~]$ conda deactivate
 [user@hpc-cluster ~]$ eval "$(conda shell.bash hook)"
@@ -37,12 +37,11 @@ conda activate atombench
 ```
 
 #### Step 5: Add `mamba` to the Atombench `conda` environment
-FlowMM's environment setup is very memory-hungry and can potentially cause OOM errors. To avoid this, download `mamba` to the base Conda environment:
+FlowMM's environment setup is very memory-hungry and can potentially cause OOM errors. To avoid this, download `mamba` to the base `conda` environment:
 ```bash
-conda install -n atombench -c conda-forge conda-libmamba-solver -y
-conda config --set solver libmamba
+conda install -n atombench -c conda-forge mamba -y
 ```
-NOTE: It will take 20 minutes to and hour to setup the FlowMM Conda environment.
+NOTE: It will take 20 minutes to and hour to setup the FlowMM `conda` environment.
 
 #### Step 6: Download Python dependencies
 This repository recomputes the AtomBench benchmarks using a semi-automated `Snakemake` pipeline. For more information about `Snakemake`, visit their [documentation](https://snakemake.readthedocs.io/en/stable/) site. Moreover, we use `uv` to speed up downstream package installation, and we use `DVC` to automate dataset preprocessing.
