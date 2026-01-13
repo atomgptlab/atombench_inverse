@@ -49,6 +49,32 @@ This repository recomputes the AtomBench benchmarks using a semi-automated `Snak
 pip install uv snakemake dvc
 ```
 
+## Common Installation Pitfalls
+
+- **`conda` doesn’t activate properly**  
+  If `conda activate` does nothing or errors, your shell is not initialized. Run  
+  `eval "$(conda shell.bash hook)"` and confirm that `(base)` appears in your prompt.
+
+- **Mixing multiple Python managers**  
+  Having `conda`, `micromamba`, or system Python all active at once will cause hard-to-diagnose failures. Use *one* `conda` installation and ensure `which python` points inside the active environment.
+
+- **Running on the wrong system**  
+  This code assumes Linux + SLURM + CUDA 11.8. MacOS, Windows, or non-SLURM clusters will fail early, often with cryptic CUDA or scheduler errors.
+
+- **Forgetting to initialize submodules**  
+  If `models/` is empty or incomplete, you likely skipped  
+  `git submodule update --init --recursive`.
+
+- **OOM or extremely slow environment solves**  
+  FlowMM’s environment is large. This is expected. Use `mamba` (not `conda`) and be patient—20–60 minutes is normal on shared systems.
+
+- **Snakemake hides the real error**  
+  When something fails, rerun with `--show-failed-logs` or execute the failing job script directly. The actual issue is almost always in the job log.
+
+If you hit an issue not listed here, run `depcheck.sh` first—it catches most environment-level problems before you waste time debugging downstream failures.
+
+
+
 ## Recompute Atombench Benchmarks
 #### Step 1: Provide the location of this atombench repository
 For this repository to execute its core functionalities, it must know its own location in the computer's filesystem. To accomplish this, locate a file in the `scripts/` directory called `absolute_path.sh`, and set the `ABS_PATH` environment variable equal to the repository's absolute path, e.g.
