@@ -146,3 +146,9 @@ snakemake -n all
 `Snakemake` will exclude the completed jobs and report only the remaining missing targets. This process can be repeated iteratively until all benchmarks have been completed and the `all` rule is satisfied.
 
 This manual fallback preserves the dependency structure and bookkeeping guarantees of `Snakemake` while allowing recovery from transient scheduler, environment, or responsiveness issues common on shared HPC systems.
+
+## Notes on GPU Selection and Model-Specific Snakefiles
+
+In addition to the root Snakefile, each subdirectory under `job_runs/` contains its own model-specific Snakefile responsible for executing individual benchmark computations. These Snakefiles define `sbatch` directives directly, including explicit GPU requests (e.g., A100, H100, L40S).
+
+On some HPC systems, a pipeline failure may occur if the requested GPU type is unavailable or restricted on the target cluster. In such cases, the fix is straightforward: edit the corresponding Snakefile (or associated job script) under job_runs/ and replace the GPU specification with a valid GPU available on your system.
