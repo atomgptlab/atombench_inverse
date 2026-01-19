@@ -4,7 +4,7 @@ Unified dataset preprocessing for AtomGPT, CDVAE, and FlowMM.
 
 Usage
 -----
-Choose a sub‑command:
+Choose a sub-command:
 
     python data_preprocess.py atomgpt  --dataset dft_3d --output ./atomgpt_out  \
                                        --target Tc_supercon --max-size 1000 --seed 123
@@ -15,11 +15,15 @@ Choose a sub‑command:
     python data_preprocess.py flowmm   --dataset dft_3d --output ./flowmm_out   \
                                        --target Tc_supercon --max-size 1000 --seed 123
 
-The same *shuffle‑based* split (controlled by --seed) is used for every
-sub‑command, so each model sees identical train/val/test partitions.  POSCAR
-files are always written.  CSV formats match the original reference scripts.
+The same *shuffle-based* split (controlled by --seed) is used for every
+sub-command, so each model sees identical train/val/test partitions. POSCAR
+files are always written. CSV formats match the original reference scripts.
 
-Abstract‑factory layout:
+Special-case hygiene for JARVIS Supercon-3D (dataset dft_3d):
+  - Remove the duplicate entry 'JVASP-19919' BEFORE shuffling/splitting so it
+    cannot land in train/val/test (it is structurally identical to another entry).
+
+Abstract-factory layout:
 
     ┌────────────────────────┐
     │   DataPrepFactory (ABC)│
@@ -34,7 +38,6 @@ Abstract‑factory layout:
                ▼         ▼         ▼
       id_prop.csv   train/val/test train/val/test
                     (minimal cols) (extended cols)
-
 """
 from __future__ import annotations
 
@@ -57,6 +60,7 @@ from jarvis.io.vasp.inputs import Poscar
 from pymatgen.core import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from contextlib import contextmanager
+
 
 @contextmanager
 def _pushd(path: Path):
@@ -102,7 +106,7 @@ def hash10(values: List[str]) -> str:
 
 
 def canonicalise(pmg_struct: Structure, symprec: float = 0.1):
-    """Return (cif_raw, cif_conv, spg_num, spg_conv).  Never raises."""
+    """Return (cif_raw, cif_conv, spg_num, spg_conv). Never raises."""
     try:
         sga = SpacegroupAnalyzer(pmg_struct, symprec=symprec)
         spg_num = sga.get_space_group_number()
@@ -114,12 +118,36 @@ def canonicalise(pmg_struct: Structure, symprec: float = 0.1):
     except Exception:
         return "", "", -1, -1
 
+
+def maybe_drop_known_duplicates(df: pd.DataFrame, dataset_name: str) -> pd.DataFrame:
+    """
+    Dataset-specific hygiene.
+
+    For JARVIS Supercon-3D (dataset_name == 'dft_3d'), drop JVASP-19919
+    (known duplicate / structurally identical to another entry), *before* shuffling.
+    """
+    if dataset_name.strip().lower() != "dft_3d":
+        return df
+
+    bad_id = "JVASP-19919"
+    if "material_id" not in df.columns:
+        return df
+
+    mask = df["material_id"].astype(str) != bad_id
+    dropped = int((~mask).sum())
+    if dropped > 0:
+        print(f"⚠️  Supercon-3D hygiene: dropped {dropped} row(s) with material_id='{bad_id}' before splitting.")
+    else:
+        print(f"✓ Supercon-3D hygiene: '{bad_id}' not present; nothing to drop.")
+    return df.loc[mask].reset_index(drop=True)
+
+
 ################################################################################
-# Abstract‑factory base class
+# Abstract-factory base class
 ################################################################################
 
 class DataPrepFactory(ABC):
-    """Abstract product: writes model‑specific outputs."""
+    """Abstract product: writes model-specific outputs."""
 
     def __init__(self, out_dir: Path, target_key: str):
         self.out_dir = out_dir
@@ -153,6 +181,7 @@ class DataPrepFactory(ABC):
     ) -> None:  # pragma: no cover
         ...
 
+
 ################################################################################
 # Concrete factories
 ################################################################################
@@ -165,14 +194,12 @@ class AtomGPTFactory(DataPrepFactory):
         id_all = id_train + id_val + id_test
         rel_paths = self.write_poscar_files(df, id_all)
 
-        # Build id_prop.csv – *test* rows first so AtomGPT can treat them as test
+        # Build id_prop.csv – keep the same order across models
         targets = [df.iloc[i][self.target_key] for i in id_all]
         id_prop = pd.DataFrame({"structure_path": rel_paths, self.target_key: targets})
         id_prop.to_csv(self.out_dir / "id_prop.csv", index=False, header=False)
 
-        print(
-            f"✓ AtomGPT: wrote {len(id_prop)} rows -> {self.out_dir / 'id_prop.csv'}"
-        )
+        print(f"✓ AtomGPT: wrote {len(id_prop)} rows -> {self.out_dir / 'id_prop.csv'}")
         print(f"   hash10(ids)={hash10(rel_paths)}")
 
 
@@ -232,10 +259,10 @@ class FlowMMFactory(DataPrepFactory):
             " hashes", hash10([df.iloc[i]["material_id"] for i in id_test])
         )
 
+
 ################################################################################
 # Dataset acquisition (shared for all factories)
 ################################################################################
-
 
 def collect_records(
     dataset_name: str,
@@ -291,6 +318,7 @@ def collect_records(
         )
     return df
 
+
 ################################################################################
 # CLI parsing and wiring
 ################################################################################
@@ -332,7 +360,7 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv: Optional[List[str]] = None) -> None:  # entry‑point
+def main(argv: Optional[List[str]] = None) -> None:  # entry-point
     args = build_parser().parse_args(argv)
 
     # 1) Collect data (shared)
@@ -342,6 +370,10 @@ def main(argv: Optional[List[str]] = None) -> None:  # entry‑point
         target_key=args.target_key,
         max_size=args.max_size,
     )
+
+    # 1b) Dataset-specific hygiene (drop known duplicate before splitting)
+    df = maybe_drop_known_duplicates(df, dataset_name=args.dataset)
+
     n_samples = len(df)
     print(f"✓ Collected {n_samples} usable entries")
 
@@ -352,9 +384,7 @@ def main(argv: Optional[List[str]] = None) -> None:  # entry‑point
         test_ratio=args.test_ratio,
         seed=args.seed,
     )
-    print(
-        f"Split sizes  train:{len(id_train)}  val:{len(id_val)}  test:{len(id_test)}"
-    )
+    print(f"Split sizes  train:{len(id_train)}  val:{len(id_val)}  test:{len(id_test)}")
 
     # 3) Dispatch to the requested factory
     factory_cls = FACTORY_REGISTRY[args.model]
@@ -364,3 +394,4 @@ def main(argv: Optional[List[str]] = None) -> None:  # entry‑point
 
 if __name__ == "__main__":
     main()
+
