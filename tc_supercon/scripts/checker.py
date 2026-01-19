@@ -18,10 +18,12 @@ It checks, for AtomGPT / CDVAE / FlowMM artifacts on disk:
    - CIF text hash overlap across splits (normalized text → SHA-256)
    - Structure hash overlap across splits (canonicalized Structure → SHA-256)
 
-If leakage is detected, the script prints the offending structures:
-  - overlapping material_ids (when applicable)
-  - overlapping CIF hashes + example IDs from each side + CIF snippets
-  - overlapping STRUCTURE hashes + example IDs from each side + CIF snippets
+Key behavior (per your request):
+- Do NOT error on the first detected duplicate/leak.
+- Instead:
+  * compute how many overlaps exist
+  * print ONLY the overlapping hash tokens, and which split-pair(s) they appear in
+  * check ALL datasets (CDVAE then FlowMM) and ONLY THEN exit non-zero if any issues exist
 
 AtomGPT split convention (per user request):
    - AtomGPT "train" = head of id_prop.csv
@@ -35,6 +37,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
@@ -43,10 +46,6 @@ import pandas as pd
 
 
 # --------------------------- misc utilities ---------------------------
-
-def die(msg: str, code: int = 1) -> None:
-    print(f"\n[FAIL] {msg}\n", file=sys.stderr)
-    raise SystemExit(code)
 
 def warn(msg: str) -> None:
     print(f"[WARN] {msg}", file=sys.stderr)
@@ -61,6 +60,7 @@ def _set(x: Sequence[str]) -> Set[str]:
     return set(_as_list(x))
 
 def _dups(x: Sequence[str]) -> List[str]:
+    """Return duplicates (by value) preserving encounter order."""
     seen = set()
     d = []
     for v in _as_list(x):
@@ -71,61 +71,123 @@ def _dups(x: Sequence[str]) -> List[str]:
     return d
 
 
+# --------------------------- Error accumulator ---------------------------
+
+@dataclass
+class IssueLog:
+    hard_failures: List[str]
+    leak_summaries: List[str]
+    leak_hashes: List[str]
+
+    def __init__(self):
+        self.hard_failures = []
+        self.leak_summaries = []
+        self.leak_hashes = []
+
+    def add_fail(self, msg: str) -> None:
+        self.hard_failures.append(msg)
+
+    def add_leak_summary(self, msg: str) -> None:
+        self.leak_summaries.append(msg)
+
+    def add_leak_hash_line(self, msg: str) -> None:
+        self.leak_hashes.append(msg)
+
+    def any_fail(self) -> bool:
+        return bool(self.hard_failures or self.leak_summaries or self.leak_hashes)
+
+    def report_and_exit(self) -> None:
+        if not self.any_fail():
+            print("\n✓ All reviewer-facing split/leakage checks passed ✅\n")
+            raise SystemExit(0)
+
+        print("\n==================== SPLIT/LEAKAGE AUDIT: FAIL ====================", file=sys.stderr)
+        if self.hard_failures:
+            print("\n[HARD FAILURES]", file=sys.stderr)
+            for msg in self.hard_failures:
+                print(f"- {msg}", file=sys.stderr)
+
+        if self.leak_summaries or self.leak_hashes:
+            print("\n[LEAKAGE SUMMARY]", file=sys.stderr)
+            for msg in self.leak_summaries:
+                print(f"- {msg}", file=sys.stderr)
+
+            if self.leak_hashes:
+                print("\n[OVERLAPPING HASH TOKENS]", file=sys.stderr)
+                for line in self.leak_hashes:
+                    print(line, file=sys.stderr)
+
+        print("\n====================================================================\n", file=sys.stderr)
+        raise SystemExit(1)
+
+
 # --------------------------- AtomGPT split parsing ---------------------------
 
-def atomgpt_ids(dir_: Path) -> Tuple[List[str], List[str]]:
+def atomgpt_ids(dir_: Path, issues: IssueLog) -> Tuple[List[str], List[str]]:
     """
     Return (paths, ids) from id_prop.csv.
     id_prop.csv is assumed headerless: col0=path, col1=target.
     """
     p = dir_ / "id_prop.csv"
     if not p.exists():
-        die(f"AtomGPT id_prop.csv not found at: {p}")
+        issues.add_fail(f"AtomGPT id_prop.csv not found at: {p}")
+        return [], []
 
     df = pd.read_csv(p, header=None, names=["path", "target"])
     paths = df["path"].astype(str).tolist()
     ids = [Path(s).stem for s in paths]  # strip extension
     return paths, ids
 
-def atomgpt_split(dir_: Path, n_test: int) -> Tuple[List[str], List[str]]:
+def atomgpt_split(dir_: Path, n_test: int, issues: IssueLog) -> Tuple[List[str], List[str]]:
     """
     Split AtomGPT ids into (train_ids, test_ids) as head/tail where tail length = n_test.
     """
-    _, ids = atomgpt_ids(dir_)
+    _, ids = atomgpt_ids(dir_, issues)
+    if not ids:
+        return [], []
+
     if n_test <= 0:
-        die(f"AtomGPT split: n_test must be > 0, got {n_test}")
+        issues.add_fail(f"AtomGPT split: n_test must be > 0, got {n_test}")
+        return [], []
     if n_test >= len(ids):
-        die(f"AtomGPT split: n_test={n_test} must be smaller than total rows={len(ids)} in id_prop.csv")
+        issues.add_fail(
+            f"AtomGPT split: n_test={n_test} must be smaller than total rows={len(ids)} in id_prop.csv"
+        )
+        return [], []
 
     train_ids = ids[:-n_test]
     test_ids = ids[-n_test:]
     if len(train_ids) + len(test_ids) != len(ids):
-        die("AtomGPT split invariant violated (head+tail != total). This should be impossible.")
+        issues.add_fail("AtomGPT split invariant violated (head+tail != total).")
+        return [], []
+
     return train_ids, test_ids
 
 
 # --------------------------- CDVAE / FlowMM split parsing ---------------------------
 
-def read_ids_csv(path: Path, col: str = "material_id") -> List[str]:
+def read_ids_csv(path: Path, issues: IssueLog, col: str = "material_id") -> List[str]:
     if not path.exists():
-        die(f"Missing expected split file: {path}")
+        issues.add_fail(f"Missing expected split file: {path}")
+        return []
     df = pd.read_csv(path, dtype=str, keep_default_na=False, na_filter=False)
     if col not in df.columns:
-        die(f"Expected column '{col}' in {path}, found {list(df.columns)}")
+        issues.add_fail(f"Expected column '{col}' in {path}, found {list(df.columns)}")
+        return []
     return df[col].astype(str).tolist()
 
-def cdvae_splits(dir_: Path) -> Tuple[List[str], List[str], List[str]]:
+def cdvae_splits(dir_: Path, issues: IssueLog) -> Tuple[List[str], List[str], List[str]]:
     return (
-        read_ids_csv(dir_ / "train.csv"),
-        read_ids_csv(dir_ / "val.csv"),
-        read_ids_csv(dir_ / "test.csv"),
+        read_ids_csv(dir_ / "train.csv", issues),
+        read_ids_csv(dir_ / "val.csv", issues),
+        read_ids_csv(dir_ / "test.csv", issues),
     )
 
-def flowmm_splits(dir_: Path) -> Tuple[List[str], List[str], List[str]]:
+def flowmm_splits(dir_: Path, issues: IssueLog) -> Tuple[List[str], List[str], List[str]]:
     return (
-        read_ids_csv(dir_ / "train.csv"),
-        read_ids_csv(dir_ / "val.csv"),
-        read_ids_csv(dir_ / "test.csv"),
+        read_ids_csv(dir_ / "train.csv", issues),
+        read_ids_csv(dir_ / "val.csv", issues),
+        read_ids_csv(dir_ / "test.csv", issues),
     )
 
 
@@ -140,30 +202,33 @@ def _norm_cif_text(s: str) -> str:
 def _sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
 
-def _import_pymatgen():
+def _import_pymatgen(issues: IssueLog):
     try:
         from pymatgen.core import Structure
         from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
         return Structure, SpacegroupAnalyzer
     except Exception as e:
-        die(
+        issues.add_fail(
             "pymatgen is required for structure-level leakage checks. "
             "Install it or run with --no-structure-leakage.\n"
             f"Import error: {e}"
         )
-        raise  # unreachable
+        return None, None
 
 def structure_hash_from_cif(
     cif_text: str,
     symprec: float,
     angle_tolerance: float,
     decimals: int,
+    issues: IssueLog,
 ) -> Optional[str]:
     """
     Parse CIF -> Niggli reduce -> symmetry standardize -> deterministic site order -> round -> SHA-256.
     Returns None if parsing/canonicalization fails.
     """
-    Structure, SpacegroupAnalyzer = _import_pymatgen()
+    Structure, SpacegroupAnalyzer = _import_pymatgen(issues)
+    if Structure is None:
+        return None
 
     try:
         s = Structure.from_str(cif_text, fmt="cif")
@@ -207,13 +272,21 @@ def structure_hash_from_cif(
     except Exception:
         return None
 
-def load_cifs_by_id(csv_path: Path) -> Dict[str, str]:
+def load_cifs_by_id(csv_path: Path, issues: IssueLog) -> Dict[str, str]:
     """
     Load mapping: material_id -> cif string from a split csv.
     """
+    if not csv_path.exists():
+        issues.add_fail(f"Missing expected split file: {csv_path}")
+        return {}
+
     df = pd.read_csv(csv_path, dtype=str, keep_default_na=False, na_filter=False)
     if "material_id" not in df.columns or "cif" not in df.columns:
-        die(f"{csv_path} must contain columns 'material_id' and 'cif'. Found {list(df.columns)}")
+        issues.add_fail(
+            f"{csv_path} must contain columns 'material_id' and 'cif'. Found {list(df.columns)}"
+        )
+        return {}
+
     out: Dict[str, str] = {}
     for mid, cif in zip(df["material_id"].astype(str), df["cif"].astype(str)):
         mid = mid.strip()
@@ -222,50 +295,26 @@ def load_cifs_by_id(csv_path: Path) -> Dict[str, str]:
         out.setdefault(mid, cif)
     return out
 
-def _snippet(cif: str, max_lines: int = 30) -> str:
-    lines = _norm_cif_text(cif).split("\n")
-    if len(lines) <= max_lines:
-        return "\n".join(lines)
-    return "\n".join(lines[:max_lines] + ["..."])
+def _overlap_pairs() -> List[Tuple[str, str]]:
+    return [("train", "val"), ("train", "test"), ("val", "test")]
 
-def _print_overlap_examples(
-    name: str,
-    overlap_kind: str,
-    a: str,
-    b: str,
-    overlaps: Set[str],
-    token_to_ids_a: Dict[str, List[str]],
-    token_to_ids_b: Dict[str, List[str]],
-    id_to_cif_a: Dict[str, str],
-    id_to_cif_b: Dict[str, str],
-    show: int = 10,
-) -> None:
-    print(f"\n[DETAIL] {name}: {overlap_kind} overlap between {a} and {b}: {len(overlaps)}", file=sys.stderr)
-    for i, tok in enumerate(sorted(overlaps)[:show], start=1):
-        ids_a = token_to_ids_a.get(tok, [])[:3]
-        ids_b = token_to_ids_b.get(tok, [])[:3]
-        print(f"\n  [{i}] token={tok}", file=sys.stderr)
-        print(f"      {a} example IDs: {', '.join(ids_a) if ids_a else '(none)'}", file=sys.stderr)
-        print(f"      {b} example IDs: {', '.join(ids_b) if ids_b else '(none)'}", file=sys.stderr)
-
-        # Print CIF snippets for one representative from each side
-        if ids_a:
-            ca = id_to_cif_a.get(ids_a[0], "")
-            print(f"\n      {a} CIF snippet (ID={ids_a[0]}):\n{_snippet(ca)}", file=sys.stderr)
-        if ids_b:
-            cb = id_to_cif_b.get(ids_b[0], "")
-            print(f"\n      {b} CIF snippet (ID={ids_b[0]}):\n{_snippet(cb)}", file=sys.stderr)
-
-def _build_token_index(ids_to_cif: Dict[str, str], token_fn) -> Tuple[Set[str], Dict[str, List[str]]]:
-    toks: Set[str] = set()
-    tok_to_ids: Dict[str, List[str]] = {}
-    for mid, cif in ids_to_cif.items():
-        tok = token_fn(cif)
-        if tok is None:
-            continue
-        toks.add(tok)
-        tok_to_ids.setdefault(tok, []).append(mid)
-    return toks, tok_to_ids
+def _collect_overlapping_tokens(
+    tokens_by_split: Dict[str, Set[str]]
+) -> Tuple[Set[str], Dict[str, Set[str]]]:
+    """
+    Return:
+      - union_overlaps: all tokens that overlap across ANY split pair
+      - pair_to_tokens: mapping "a|b" -> overlapping token set
+    """
+    pair_to_tokens: Dict[str, Set[str]] = {}
+    union_overlaps: Set[str] = set()
+    for a, b in _overlap_pairs():
+        inter = tokens_by_split.get(a, set()) & tokens_by_split.get(b, set())
+        key = f"{a}|{b}"
+        if inter:
+            pair_to_tokens[key] = inter
+            union_overlaps |= inter
+    return union_overlaps, pair_to_tokens
 
 def leakage_check_cdvae_flowmm(
     name: str,
@@ -273,153 +322,126 @@ def leakage_check_cdvae_flowmm(
     symprec: float,
     angle_tolerance: float,
     decimals: int,
-    show: int,
+    issues: IssueLog,
 ) -> None:
     """
     For a dataset directory with train/val/test.csv (each has material_id,cif),
-    assert no overlap across splits by:
+    check overlap across splits by:
       - material_id
       - normalized CIF text hash
       - structure hash (canonicalized)
 
-    On failure, print the problematic structures.
+    Per request: do NOT print IDs/snippets; print ONLY hash tokens + which split-pairs.
+    Accumulate results; do not early-exit.
     """
     train_p = dir_ / "train.csv"
     val_p   = dir_ / "val.csv"
     test_p  = dir_ / "test.csv"
 
-    for p in (train_p, val_p, test_p):
-        if not p.exists():
-            die(f"{name}: missing expected split file {p}")
-
     maps = {
-        "train": load_cifs_by_id(train_p),
-        "val":   load_cifs_by_id(val_p),
-        "test":  load_cifs_by_id(test_p),
+        "train": load_cifs_by_id(train_p, issues),
+        "val":   load_cifs_by_id(val_p, issues),
+        "test":  load_cifs_by_id(test_p, issues),
     }
 
-    # 1) ID disjointness
-    ids = {k: set(v.keys()) for k, v in maps.items()}
-    pairs = [("train", "val"), ("train", "test"), ("val", "test")]
-    for a, b in pairs:
-        inter = ids[a] & ids[b]
-        if inter:
-            sample = ", ".join(sorted(list(inter))[:min(show, 10)])
-            print(f"\n[DETAIL] {name}: material_id overlap between {a} and {b}: {len(inter)}", file=sys.stderr)
-            print(f"  example overlapping IDs: {sample}", file=sys.stderr)
-            # Print CIF snippets for the first few overlapping IDs
-            for j, mid in enumerate(sorted(list(inter))[:min(show, 10)], start=1):
-                print(f"\n  [{j}] overlapping material_id={mid}", file=sys.stderr)
-                print(f"      {a} CIF snippet:\n{_snippet(maps[a].get(mid,''))}", file=sys.stderr)
-                print(f"      {b} CIF snippet:\n{_snippet(maps[b].get(mid,''))}", file=sys.stderr)
-            die(f"{name}: material_id overlap between {a} and {b}: {len(inter)}")
+    # If reading failed badly, don't cascade; issues already recorded.
+    if not maps["train"] and not maps["val"] and not maps["test"]:
+        return
 
-    # 2) CIF text hash disjointness (with examples)
+    # 1) material_id overlap (hard leakage)
+    ids = {k: set(v.keys()) for k, v in maps.items()}
+    for a, b in _overlap_pairs():
+        inter = ids.get(a, set()) & ids.get(b, set())
+        if inter:
+            issues.add_leak_summary(f"{name}: material_id overlap between {a} and {b}: {len(inter)}")
+
+    # 2) CIF text hash overlap (strict identity of normalized text)
     def cif_hash(cif: str) -> str:
         return _sha256_hex(_norm_cif_text(cif))
 
-    cif_hashes: Dict[str, Set[str]] = {}
-    cif_index: Dict[str, Dict[str, List[str]]] = {}  # split -> hash -> ids
+    cif_tokens_by_split: Dict[str, Set[str]] = {}
     for sp, mp in maps.items():
-        toks, tok_to_ids = _build_token_index(mp, cif_hash)
-        cif_hashes[sp] = toks
-        cif_index[sp] = tok_to_ids
+        cif_tokens_by_split[sp] = {cif_hash(cif) for cif in mp.values()}
 
-    for a, b in pairs:
-        inter = cif_hashes[a] & cif_hashes[b]
-        if inter:
-            _print_overlap_examples(
-                name=name,
-                overlap_kind="CIF-text hash",
-                a=a, b=b,
-                overlaps=inter,
-                token_to_ids_a=cif_index[a],
-                token_to_ids_b=cif_index[b],
-                id_to_cif_a=maps[a],
-                id_to_cif_b=maps[b],
-                show=show,
-            )
-            die(f"{name}: CIF-text hash overlap between {a} and {b}: {len(inter)}")
+    cif_union, cif_pair_to = _collect_overlapping_tokens(cif_tokens_by_split)
+    if cif_union:
+        issues.add_leak_summary(f"{name}: CIF-text hash overlaps across splits: {len(cif_union)}")
+        # print only tokens + which split-pairs they appear in
+        tok_to_pairs: Dict[str, List[str]] = {t: [] for t in cif_union}
+        for pair, toks in cif_pair_to.items():
+            for t in toks:
+                tok_to_pairs.setdefault(t, []).append(pair)
+        for t in sorted(tok_to_pairs.keys()):
+            pairs = ",".join(sorted(tok_to_pairs[t]))
+            issues.add_leak_hash_line(f"{name} CIF  {t}  splits={pairs}")
 
-    # 3) Structure hash disjointness (with examples)
+    # 3) STRUCTURE hash overlap (tolerant canonicalization; controlled by symprec/decimals)
     bad = 0
     total = 0
 
-    def struct_hash(cif: str) -> Optional[str]:
-        return structure_hash_from_cif(_norm_cif_text(cif), symprec, angle_tolerance, decimals)
-
-    struct_hashes: Dict[str, Set[str]] = {}
-    struct_index: Dict[str, Dict[str, List[str]]] = {}
+    struct_tokens_by_split: Dict[str, Set[str]] = {"train": set(), "val": set(), "test": set()}
     for sp, mp in maps.items():
-        toks = set()
-        tok_to_ids: Dict[str, List[str]] = {}
-        for mid, cif in mp.items():
+        hs = set()
+        for cif in mp.values():
             total += 1
-            h = struct_hash(cif)
+            h = structure_hash_from_cif(_norm_cif_text(cif), symprec, angle_tolerance, decimals, issues)
             if h is None:
                 bad += 1
                 continue
-            toks.add(h)
-            tok_to_ids.setdefault(h, []).append(mid)
-        struct_hashes[sp] = toks
-        struct_index[sp] = tok_to_ids
+            hs.add(h)
+        struct_tokens_by_split[sp] = hs
 
     if bad > 0:
-        warn(f"{name}: structure-hash parse failures: {bad}/{total} (skipped for structure-hash overlap checks)")
+        warn(f"{name}: structure-hash parse failures: {bad}/{total} (skipped for STRUCTURE hash overlap checks)")
 
-    for a, b in pairs:
-        inter = struct_hashes[a] & struct_hashes[b]
-        if inter:
-            _print_overlap_examples(
-                name=name,
-                overlap_kind="STRUCTURE hash",
-                a=a, b=b,
-                overlaps=inter,
-                token_to_ids_a=struct_index[a],
-                token_to_ids_b=struct_index[b],
-                id_to_cif_a=maps[a],
-                id_to_cif_b=maps[b],
-                show=show,
-            )
-            die(f"{name}: STRUCTURE-hash overlap between {a} and {b}: {len(inter)}")
+    struct_union, struct_pair_to = _collect_overlapping_tokens(struct_tokens_by_split)
+    if struct_union:
+        issues.add_leak_summary(f"{name}: STRUCTURE-hash overlaps across splits: {len(struct_union)}")
+        tok_to_pairs: Dict[str, List[str]] = {t: [] for t in struct_union}
+        for pair, toks in struct_pair_to.items():
+            for t in toks:
+                tok_to_pairs.setdefault(t, []).append(pair)
+        for t in sorted(tok_to_pairs.keys()):
+            pairs = ",".join(sorted(tok_to_pairs[t]))
+            issues.add_leak_hash_line(f"{name} STRC {t}  splits={pairs}")
 
-    ok(f"{name}: no leakage detected across train/val/test (by id, CIF-hash, structure-hash)")
+    if not (cif_union or struct_union) and all(
+        (ids.get(a, set()) & ids.get(b, set()) == set()) for a, b in _overlap_pairs()
+    ):
+        ok(f"{name}: no leakage detected across train/val/test (by id, CIF-hash, structure-hash)")
 
 
-# --------------------------- Core assertions ---------------------------
+# --------------------------- Core assertions (accumulating) ---------------------------
 
-def assert_no_dups(label: str, ids: Sequence[str]) -> None:
+def assert_no_dups(label: str, ids: Sequence[str], issues: IssueLog) -> None:
     d = _dups(ids)
     if d:
-        sample = ", ".join(d[:10])
-        die(f"{label}: duplicates within split: {len(d)} (e.g., {sample})")
+        # note: d contains repeated items; count of duplicates = len(d)
+        uniq = sorted(list(set(d)))
+        issues.add_fail(f"{label}: duplicates within split: {len(d)} (unique duplicated IDs: {len(uniq)})")
 
-def assert_disjoint(labelA: str, A: Sequence[str], labelB: str, B: Sequence[str]) -> None:
+def assert_disjoint(labelA: str, A: Sequence[str], labelB: str, B: Sequence[str], issues: IssueLog) -> None:
     inter = _set(A) & _set(B)
     if inter:
-        sample = ", ".join(sorted(list(inter))[:10])
-        die(f"Split overlap: {labelA} ∩ {labelB} has {len(inter)} IDs (e.g., {sample})")
+        issues.add_fail(f"Split overlap: {labelA} ∩ {labelB} has {len(inter)} IDs")
 
-def assert_equal_sets(labelA: str, A: Sequence[str], labelB: str, B: Sequence[str]) -> None:
+def assert_equal_sets(labelA: str, A: Sequence[str], labelB: str, B: Sequence[str], issues: IssueLog) -> None:
     SA, SB = _set(A), _set(B)
     if SA != SB:
-        onlyA = sorted(list(SA - SB))[:10]
-        onlyB = sorted(list(SB - SA))[:10]
-        die(
-            f"Set mismatch: {labelA} vs {labelB}\n"
-            f"  - {labelA} \\ {labelB}: {len(SA - SB)} (e.g., {', '.join(onlyA)})\n"
-            f"  - {labelB} \\ {labelA}: {len(SB - SA)} (e.g., {', '.join(onlyB)})"
+        issues.add_fail(
+            f"Set mismatch: {labelA} vs {labelB}  "
+            f"({len(SA - SB)} only-in-{labelA}, {len(SB - SA)} only-in-{labelB})"
         )
 
-def assert_equal_order(labelA: str, A: Sequence[str], labelB: str, B: Sequence[str]) -> None:
+def assert_equal_order(labelA: str, A: Sequence[str], labelB: str, B: Sequence[str], issues: IssueLog) -> None:
     if list(_as_list(A)) != list(_as_list(B)):
-        die(f"Order mismatch: {labelA} != {labelB} (use without --strict-order to compare as sets)")
+        issues.add_fail(f"Order mismatch: {labelA} != {labelB} (use without --strict-order to compare as sets)")
 
 
 # --------------------------- main ---------------------------
 
 def main(argv=None) -> None:
-    ap = argparse.ArgumentParser(description="Split leakage/disjointness auditor (hard-fail).")
+    ap = argparse.ArgumentParser(description="Split leakage/disjointness auditor (hard-fail after full run).")
     ap.add_argument("--atomgpt-dir", required=True, type=Path)
     ap.add_argument("--cdvae-dir", required=True, type=Path)
     ap.add_argument("--flowmm-dir", required=True, type=Path)
@@ -437,58 +459,59 @@ def main(argv=None) -> None:
                     help="angle_tolerance for symmetry standardization in structure hashing.")
     ap.add_argument("--decimals", type=int, default=6,
                     help="Rounding decimals for structure hashing.")
-    ap.add_argument("--show", type=int, default=5,
-                    help="How many overlapping structures to print when a failure occurs (default: 5).")
 
     args = ap.parse_args(argv)
+    issues = IssueLog()
 
     # Load CDVAE/FlowMM splits (explicit)
-    cd_train, cd_val, cd_test = cdvae_splits(args.cdvae_dir)
-    fm_train, fm_val, fm_test = flowmm_splits(args.flowmm_dir)
+    cd_train, cd_val, cd_test = cdvae_splits(args.cdvae_dir, issues)
+    fm_train, fm_val, fm_test = flowmm_splits(args.flowmm_dir, issues)
 
     # Infer AtomGPT test size
     n_test = args.n_test if args.n_test is not None else len(cd_test)
-    ag_train, ag_test = atomgpt_split(args.atomgpt_dir, n_test=n_test)
+    ag_train, ag_test = atomgpt_split(args.atomgpt_dir, n_test=n_test, issues=issues)
 
     # ---------- Basic split hygiene ----------
-    assert_no_dups("CDVAE train", cd_train)
-    assert_no_dups("CDVAE val", cd_val)
-    assert_no_dups("CDVAE test", cd_test)
+    assert_no_dups("CDVAE train", cd_train, issues)
+    assert_no_dups("CDVAE val", cd_val, issues)
+    assert_no_dups("CDVAE test", cd_test, issues)
 
-    assert_no_dups("FlowMM train", fm_train)
-    assert_no_dups("FlowMM val", fm_val)
-    assert_no_dups("FlowMM test", fm_test)
+    assert_no_dups("FlowMM train", fm_train, issues)
+    assert_no_dups("FlowMM val", fm_val, issues)
+    assert_no_dups("FlowMM test", fm_test, issues)
 
-    assert_no_dups("AtomGPT train(head)", ag_train)
-    assert_no_dups("AtomGPT test(tail)", ag_test)
+    assert_no_dups("AtomGPT train(head)", ag_train, issues)
+    assert_no_dups("AtomGPT test(tail)", ag_test, issues)
 
-    assert_disjoint("CDVAE train", cd_train, "CDVAE val", cd_val)
-    assert_disjoint("CDVAE train", cd_train, "CDVAE test", cd_test)
-    assert_disjoint("CDVAE val", cd_val, "CDVAE test", cd_test)
+    assert_disjoint("CDVAE train", cd_train, "CDVAE val", cd_val, issues)
+    assert_disjoint("CDVAE train", cd_train, "CDVAE test", cd_test, issues)
+    assert_disjoint("CDVAE val", cd_val, "CDVAE test", cd_test, issues)
 
-    assert_disjoint("FlowMM train", fm_train, "FlowMM val", fm_val)
-    assert_disjoint("FlowMM train", fm_train, "FlowMM test", fm_test)
-    assert_disjoint("FlowMM val", fm_val, "FlowMM test", fm_test)
+    assert_disjoint("FlowMM train", fm_train, "FlowMM val", fm_val, issues)
+    assert_disjoint("FlowMM train", fm_train, "FlowMM test", fm_test, issues)
+    assert_disjoint("FlowMM val", fm_val, "FlowMM test", fm_test, issues)
 
-    assert_disjoint("AtomGPT train(head)", ag_train, "AtomGPT test(tail)", ag_test)
+    assert_disjoint("AtomGPT train(head)", ag_train, "AtomGPT test(tail)", ag_test, issues)
 
-    ok("Within-family split disjointness and de-duplication checks passed.")
+    if not issues.hard_failures:
+        ok("Within-family split disjointness and de-duplication checks passed.")
 
     # ---------- Cross-model equivalence per requested rules ----------
-    assert_equal_sets("CDVAE test", cd_test, "FlowMM test", fm_test)
-    assert_equal_sets("CDVAE test", cd_test, "AtomGPT test(tail)", ag_test)
+    assert_equal_sets("CDVAE test", cd_test, "FlowMM test", fm_test, issues)
+    assert_equal_sets("CDVAE test", cd_test, "AtomGPT test(tail)", ag_test, issues)
 
     if args.strict_order:
-        assert_equal_order("CDVAE test", cd_test, "FlowMM test", fm_test)
-        assert_equal_order("CDVAE test", cd_test, "AtomGPT test(tail)", ag_test)
+        assert_equal_order("CDVAE test", cd_test, "FlowMM test", fm_test, issues)
+        assert_equal_order("CDVAE test", cd_test, "AtomGPT test(tail)", ag_test, issues)
 
     cd_train_equiv = list(_set(cd_train) | _set(cd_val))
     fm_train_equiv = list(_set(fm_train) | _set(fm_val))
 
-    assert_equal_sets("AtomGPT train(head)", ag_train, "CDVAE train∪val", cd_train_equiv)
-    assert_equal_sets("AtomGPT train(head)", ag_train, "FlowMM train∪val", fm_train_equiv)
+    assert_equal_sets("AtomGPT train(head)", ag_train, "CDVAE train∪val", cd_train_equiv, issues)
+    assert_equal_sets("AtomGPT train(head)", ag_train, "FlowMM train∪val", fm_train_equiv, issues)
 
-    ok("Cross-model split equivalence checks passed (using the requested mapping).")
+    if not any("Set mismatch" in s or "Order mismatch" in s for s in issues.hard_failures):
+        ok("Cross-model split equivalence checks passed (using the requested mapping).")
 
     # ---------- Structural leakage checks (CDVAE/FlowMM) ----------
     if not args.no_structure_leakage:
@@ -498,7 +521,7 @@ def main(argv=None) -> None:
             symprec=args.symprec,
             angle_tolerance=args.angle_tolerance,
             decimals=args.decimals,
-            show=args.show,
+            issues=issues,
         )
         leakage_check_cdvae_flowmm(
             name="FlowMM",
@@ -506,12 +529,12 @@ def main(argv=None) -> None:
             symprec=args.symprec,
             angle_tolerance=args.angle_tolerance,
             decimals=args.decimals,
-            show=args.show,
+            issues=issues,
         )
     else:
         warn("Skipping CIF/structure hashing leakage checks (--no-structure-leakage).")
 
-    print("\n✓ All reviewer-facing split/leakage checks passed ✅\n")
+    issues.report_and_exit()
 
 
 if __name__ == "__main__":
