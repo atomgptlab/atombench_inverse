@@ -18,29 +18,16 @@ It checks, for AtomGPT / CDVAE / FlowMM artifacts on disk:
    - CIF text hash overlap across splits (normalized text → SHA-256)
    - Structure hash overlap across splits (canonicalized Structure → SHA-256)
 
+If leakage is detected, the script prints the offending structures:
+  - overlapping material_ids (when applicable)
+  - overlapping CIF hashes + example IDs from each side + CIF snippets
+  - overlapping STRUCTURE hashes + example IDs from each side + CIF snippets
+
 AtomGPT split convention (per user request):
    - AtomGPT "train" = head of id_prop.csv
    - AtomGPT "test"  = tail of id_prop.csv
    - head + tail = entire file, where tail length is inferred from CDVAE test size
      (or explicitly supplied via --n-test)
-
-Usage
------
-python checker.py \
-  --atomgpt-dir ./atomgpt_data \
-  --cdvae-dir   ../models/cdvae/data/supercon \
-  --flowmm-dir  ../models/flowmm/data/supercon \
-  --strict-order
-
-Optional:
-  --n-test N                 # override inferred AtomGPT test length
-  --no-structure-leakage     # skip CIF/structure hashing checks
-  --symprec 0.01 --decimals 6  # structure hashing controls
-
-Dependencies
-------------
-- pandas, numpy
-- pymatgen (required unless --no-structure-leakage)
 """
 
 from __future__ import annotations
@@ -48,9 +35,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import sys
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 import pandas as pd
@@ -83,9 +69,6 @@ def _dups(x: Sequence[str]) -> List[str]:
         else:
             seen.add(v)
     return d
-
-def _diff_count(a: Sequence[str], b: Sequence[str]) -> int:
-    return len(_set(a) ^ _set(b))
 
 
 # --------------------------- AtomGPT split parsing ---------------------------
@@ -231,7 +214,7 @@ def load_cifs_by_id(csv_path: Path) -> Dict[str, str]:
     df = pd.read_csv(csv_path, dtype=str, keep_default_na=False, na_filter=False)
     if "material_id" not in df.columns or "cif" not in df.columns:
         die(f"{csv_path} must contain columns 'material_id' and 'cif'. Found {list(df.columns)}")
-    out = {}
+    out: Dict[str, str] = {}
     for mid, cif in zip(df["material_id"].astype(str), df["cif"].astype(str)):
         mid = mid.strip()
         if mid == "":
@@ -239,12 +222,58 @@ def load_cifs_by_id(csv_path: Path) -> Dict[str, str]:
         out.setdefault(mid, cif)
     return out
 
+def _snippet(cif: str, max_lines: int = 30) -> str:
+    lines = _norm_cif_text(cif).split("\n")
+    if len(lines) <= max_lines:
+        return "\n".join(lines)
+    return "\n".join(lines[:max_lines] + ["..."])
+
+def _print_overlap_examples(
+    name: str,
+    overlap_kind: str,
+    a: str,
+    b: str,
+    overlaps: Set[str],
+    token_to_ids_a: Dict[str, List[str]],
+    token_to_ids_b: Dict[str, List[str]],
+    id_to_cif_a: Dict[str, str],
+    id_to_cif_b: Dict[str, str],
+    show: int = 10,
+) -> None:
+    print(f"\n[DETAIL] {name}: {overlap_kind} overlap between {a} and {b}: {len(overlaps)}", file=sys.stderr)
+    for i, tok in enumerate(sorted(overlaps)[:show], start=1):
+        ids_a = token_to_ids_a.get(tok, [])[:3]
+        ids_b = token_to_ids_b.get(tok, [])[:3]
+        print(f"\n  [{i}] token={tok}", file=sys.stderr)
+        print(f"      {a} example IDs: {', '.join(ids_a) if ids_a else '(none)'}", file=sys.stderr)
+        print(f"      {b} example IDs: {', '.join(ids_b) if ids_b else '(none)'}", file=sys.stderr)
+
+        # Print CIF snippets for one representative from each side
+        if ids_a:
+            ca = id_to_cif_a.get(ids_a[0], "")
+            print(f"\n      {a} CIF snippet (ID={ids_a[0]}):\n{_snippet(ca)}", file=sys.stderr)
+        if ids_b:
+            cb = id_to_cif_b.get(ids_b[0], "")
+            print(f"\n      {b} CIF snippet (ID={ids_b[0]}):\n{_snippet(cb)}", file=sys.stderr)
+
+def _build_token_index(ids_to_cif: Dict[str, str], token_fn) -> Tuple[Set[str], Dict[str, List[str]]]:
+    toks: Set[str] = set()
+    tok_to_ids: Dict[str, List[str]] = {}
+    for mid, cif in ids_to_cif.items():
+        tok = token_fn(cif)
+        if tok is None:
+            continue
+        toks.add(tok)
+        tok_to_ids.setdefault(tok, []).append(mid)
+    return toks, tok_to_ids
+
 def leakage_check_cdvae_flowmm(
     name: str,
     dir_: Path,
     symprec: float,
     angle_tolerance: float,
     decimals: int,
+    show: int,
 ) -> None:
     """
     For a dataset directory with train/val/test.csv (each has material_id,cif),
@@ -252,6 +281,8 @@ def leakage_check_cdvae_flowmm(
       - material_id
       - normalized CIF text hash
       - structure hash (canonicalized)
+
+    On failure, print the problematic structures.
     """
     train_p = dir_ / "train.csv"
     val_p   = dir_ / "val.csv"
@@ -273,45 +304,83 @@ def leakage_check_cdvae_flowmm(
     for a, b in pairs:
         inter = ids[a] & ids[b]
         if inter:
-            sample = ", ".join(sorted(list(inter))[:10])
-            die(f"{name}: material_id overlap between {a} and {b}: {len(inter)} (e.g., {sample})")
+            sample = ", ".join(sorted(list(inter))[:min(show, 10)])
+            print(f"\n[DETAIL] {name}: material_id overlap between {a} and {b}: {len(inter)}", file=sys.stderr)
+            print(f"  example overlapping IDs: {sample}", file=sys.stderr)
+            # Print CIF snippets for the first few overlapping IDs
+            for j, mid in enumerate(sorted(list(inter))[:min(show, 10)], start=1):
+                print(f"\n  [{j}] overlapping material_id={mid}", file=sys.stderr)
+                print(f"      {a} CIF snippet:\n{_snippet(maps[a].get(mid,''))}", file=sys.stderr)
+                print(f"      {b} CIF snippet:\n{_snippet(maps[b].get(mid,''))}", file=sys.stderr)
+            die(f"{name}: material_id overlap between {a} and {b}: {len(inter)}")
 
-    # 2) CIF text hash disjointness
+    # 2) CIF text hash disjointness (with examples)
+    def cif_hash(cif: str) -> str:
+        return _sha256_hex(_norm_cif_text(cif))
+
     cif_hashes: Dict[str, Set[str]] = {}
+    cif_index: Dict[str, Dict[str, List[str]]] = {}  # split -> hash -> ids
     for sp, mp in maps.items():
-        hs = set()
-        for cif in mp.values():
-            hs.add(_sha256_hex(_norm_cif_text(cif)))
-        cif_hashes[sp] = hs
+        toks, tok_to_ids = _build_token_index(mp, cif_hash)
+        cif_hashes[sp] = toks
+        cif_index[sp] = tok_to_ids
 
     for a, b in pairs:
         inter = cif_hashes[a] & cif_hashes[b]
         if inter:
+            _print_overlap_examples(
+                name=name,
+                overlap_kind="CIF-text hash",
+                a=a, b=b,
+                overlaps=inter,
+                token_to_ids_a=cif_index[a],
+                token_to_ids_b=cif_index[b],
+                id_to_cif_a=maps[a],
+                id_to_cif_b=maps[b],
+                show=show,
+            )
             die(f"{name}: CIF-text hash overlap between {a} and {b}: {len(inter)}")
 
-    # 3) Structure hash disjointness
-    struct_hashes: Dict[str, Set[str]] = {}
+    # 3) Structure hash disjointness (with examples)
     bad = 0
     total = 0
+
+    def struct_hash(cif: str) -> Optional[str]:
+        return structure_hash_from_cif(_norm_cif_text(cif), symprec, angle_tolerance, decimals)
+
+    struct_hashes: Dict[str, Set[str]] = {}
+    struct_index: Dict[str, Dict[str, List[str]]] = {}
     for sp, mp in maps.items():
-        hs = set()
-        for cif in mp.values():
+        toks = set()
+        tok_to_ids: Dict[str, List[str]] = {}
+        for mid, cif in mp.items():
             total += 1
-            h = structure_hash_from_cif(_norm_cif_text(cif), symprec, angle_tolerance, decimals)
+            h = struct_hash(cif)
             if h is None:
                 bad += 1
                 continue
-            hs.add(h)
-        struct_hashes[sp] = hs
+            toks.add(h)
+            tok_to_ids.setdefault(h, []).append(mid)
+        struct_hashes[sp] = toks
+        struct_index[sp] = tok_to_ids
 
     if bad > 0:
-        # Not a failure by default; parsing failures can occur for malformed CIF strings.
-        # But we still disclose it, because referees may ask.
-        warn(f"{name}: structure-hash parse failures: {bad}/{total} (these entries were skipped for structure-hash overlap checks)")
+        warn(f"{name}: structure-hash parse failures: {bad}/{total} (skipped for structure-hash overlap checks)")
 
     for a, b in pairs:
         inter = struct_hashes[a] & struct_hashes[b]
         if inter:
+            _print_overlap_examples(
+                name=name,
+                overlap_kind="STRUCTURE hash",
+                a=a, b=b,
+                overlaps=inter,
+                token_to_ids_a=struct_index[a],
+                token_to_ids_b=struct_index[b],
+                id_to_cif_a=maps[a],
+                id_to_cif_b=maps[b],
+                show=show,
+            )
             die(f"{name}: STRUCTURE-hash overlap between {a} and {b}: {len(inter)}")
 
     ok(f"{name}: no leakage detected across train/val/test (by id, CIF-hash, structure-hash)")
@@ -368,6 +437,8 @@ def main(argv=None) -> None:
                     help="angle_tolerance for symmetry standardization in structure hashing.")
     ap.add_argument("--decimals", type=int, default=6,
                     help="Rounding decimals for structure hashing.")
+    ap.add_argument("--show", type=int, default=5,
+                    help="How many overlapping structures to print when a failure occurs (default: 5).")
 
     args = ap.parse_args(argv)
 
@@ -380,7 +451,6 @@ def main(argv=None) -> None:
     ag_train, ag_test = atomgpt_split(args.atomgpt_dir, n_test=n_test)
 
     # ---------- Basic split hygiene ----------
-    # No duplicates within each split
     assert_no_dups("CDVAE train", cd_train)
     assert_no_dups("CDVAE val", cd_val)
     assert_no_dups("CDVAE test", cd_test)
@@ -392,7 +462,6 @@ def main(argv=None) -> None:
     assert_no_dups("AtomGPT train(head)", ag_train)
     assert_no_dups("AtomGPT test(tail)", ag_test)
 
-    # Disjointness within each family
     assert_disjoint("CDVAE train", cd_train, "CDVAE val", cd_val)
     assert_disjoint("CDVAE train", cd_train, "CDVAE test", cd_test)
     assert_disjoint("CDVAE val", cd_val, "CDVAE test", cd_test)
@@ -401,13 +470,11 @@ def main(argv=None) -> None:
     assert_disjoint("FlowMM train", fm_train, "FlowMM test", fm_test)
     assert_disjoint("FlowMM val", fm_val, "FlowMM test", fm_test)
 
-    # AtomGPT has only head/tail; ensure no overlap
     assert_disjoint("AtomGPT train(head)", ag_train, "AtomGPT test(tail)", ag_test)
 
     ok("Within-family split disjointness and de-duplication checks passed.")
 
-    # ---------- Cross-model equivalence per your rules ----------
-    # Rule 1: test sets identical across all three
+    # ---------- Cross-model equivalence per requested rules ----------
     assert_equal_sets("CDVAE test", cd_test, "FlowMM test", fm_test)
     assert_equal_sets("CDVAE test", cd_test, "AtomGPT test(tail)", ag_test)
 
@@ -415,7 +482,6 @@ def main(argv=None) -> None:
         assert_equal_order("CDVAE test", cd_test, "FlowMM test", fm_test)
         assert_equal_order("CDVAE test", cd_test, "AtomGPT test(tail)", ag_test)
 
-    # Rule 2: AtomGPT train == CDVAE(train ∪ val) == FlowMM(train ∪ val)
     cd_train_equiv = list(_set(cd_train) | _set(cd_val))
     fm_train_equiv = list(_set(fm_train) | _set(fm_val))
 
@@ -432,6 +498,7 @@ def main(argv=None) -> None:
             symprec=args.symprec,
             angle_tolerance=args.angle_tolerance,
             decimals=args.decimals,
+            show=args.show,
         )
         leakage_check_cdvae_flowmm(
             name="FlowMM",
@@ -439,6 +506,7 @@ def main(argv=None) -> None:
             symprec=args.symprec,
             angle_tolerance=args.angle_tolerance,
             decimals=args.decimals,
+            show=args.show,
         )
     else:
         warn("Skipping CIF/structure hashing leakage checks (--no-structure-leakage).")
