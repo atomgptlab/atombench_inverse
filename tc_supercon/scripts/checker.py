@@ -43,7 +43,13 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 import pandas as pd
+import warnings
 
+warnings.filterwarnings(
+    "ignore",
+    message=r"Issues encountered while parsing CIF: .* rounded to ideal values .*",
+    category=UserWarning,
+)
 
 # --------------------------- misc utilities ---------------------------
 
