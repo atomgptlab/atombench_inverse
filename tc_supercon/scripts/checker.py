@@ -18,11 +18,11 @@ It checks, for AtomGPT / CDVAE / FlowMM artifacts on disk:
    - CIF text hash overlap across splits (normalized text → SHA-256)
    - Structure hash overlap across splits (canonicalized Structure → SHA-256)
 
-Key behavior (per your request):
+Key behavior:
 - Do NOT error on the first detected duplicate/leak.
 - Instead:
   * compute how many overlaps exist
-  * print ONLY the overlapping hash tokens, and which split-pair(s) they appear in
+  * print overlapping hash tokens AND example IDs per split where they appear
   * check ALL datasets (CDVAE then FlowMM) and ONLY THEN exit non-zero if any issues exist
 
 AtomGPT split convention (per user request):
@@ -69,6 +69,19 @@ def _dups(x: Sequence[str]) -> List[str]:
         else:
             seen.add(v)
     return d
+
+def _overlap_pairs() -> List[Tuple[str, str]]:
+    return [("train", "val"), ("train", "test"), ("val", "test")]
+
+def _short_ids(ids: List[str], k: int = 3) -> str:
+    ids = [i for i in ids if i]
+    if not ids:
+        return "[]"
+    shown = ids[:k]
+    extra = len(ids) - len(shown)
+    if extra > 0:
+        return "[" + ", ".join(shown) + f", ... +{extra}" + "]"
+    return "[" + ", ".join(shown) + "]"
 
 
 # --------------------------- Error accumulator ---------------------------
@@ -295,9 +308,6 @@ def load_cifs_by_id(csv_path: Path, issues: IssueLog) -> Dict[str, str]:
         out.setdefault(mid, cif)
     return out
 
-def _overlap_pairs() -> List[Tuple[str, str]]:
-    return [("train", "val"), ("train", "test"), ("val", "test")]
-
 def _collect_overlapping_tokens(
     tokens_by_split: Dict[str, Set[str]]
 ) -> Tuple[Set[str], Dict[str, Set[str]]]:
@@ -316,6 +326,13 @@ def _collect_overlapping_tokens(
             union_overlaps |= inter
     return union_overlaps, pair_to_tokens
 
+def _invert_index(token_to_ids: Dict[str, List[str]]) -> Dict[str, List[str]]:
+    # already token->ids; just defensive normalize
+    out: Dict[str, List[str]] = {}
+    for tok, ids in token_to_ids.items():
+        out[tok] = [str(i) for i in ids]
+    return out
+
 def leakage_check_cdvae_flowmm(
     name: str,
     dir_: Path,
@@ -331,17 +348,14 @@ def leakage_check_cdvae_flowmm(
       - normalized CIF text hash
       - structure hash (canonicalized)
 
-    Per request: do NOT print IDs/snippets; print ONLY hash tokens + which split-pairs.
-    Accumulate results; do not early-exit.
+    Output policy (per request):
+      - print hash tokens AND example IDs per split (no snippets).
+      - accumulate results; do not early-exit.
     """
-    train_p = dir_ / "train.csv"
-    val_p   = dir_ / "val.csv"
-    test_p  = dir_ / "test.csv"
-
     maps = {
-        "train": load_cifs_by_id(train_p, issues),
-        "val":   load_cifs_by_id(val_p, issues),
-        "test":  load_cifs_by_id(test_p, issues),
+        "train": load_cifs_by_id(dir_ / "train.csv", issues),
+        "val":   load_cifs_by_id(dir_ / "val.csv", issues),
+        "test":  load_cifs_by_id(dir_ / "test.csv", issues),
     }
 
     # If reading failed badly, don't cascade; issues already recorded.
@@ -360,36 +374,55 @@ def leakage_check_cdvae_flowmm(
         return _sha256_hex(_norm_cif_text(cif))
 
     cif_tokens_by_split: Dict[str, Set[str]] = {}
+    cif_tok_to_ids_by_split: Dict[str, Dict[str, List[str]]] = {"train": {}, "val": {}, "test": {}}
+
     for sp, mp in maps.items():
-        cif_tokens_by_split[sp] = {cif_hash(cif) for cif in mp.values()}
+        toks: Set[str] = set()
+        tok_to_ids: Dict[str, List[str]] = {}
+        for mid, cif in mp.items():
+            tok = cif_hash(cif)
+            toks.add(tok)
+            tok_to_ids.setdefault(tok, []).append(mid)
+        cif_tokens_by_split[sp] = toks
+        cif_tok_to_ids_by_split[sp] = _invert_index(tok_to_ids)
 
     cif_union, cif_pair_to = _collect_overlapping_tokens(cif_tokens_by_split)
     if cif_union:
         issues.add_leak_summary(f"{name}: CIF-text hash overlaps across splits: {len(cif_union)}")
-        # print only tokens + which split-pairs they appear in
         tok_to_pairs: Dict[str, List[str]] = {t: [] for t in cif_union}
         for pair, toks in cif_pair_to.items():
             for t in toks:
                 tok_to_pairs.setdefault(t, []).append(pair)
+
         for t in sorted(tok_to_pairs.keys()):
             pairs = ",".join(sorted(tok_to_pairs[t]))
-            issues.add_leak_hash_line(f"{name} CIF  {t}  splits={pairs}")
+            train_ids = cif_tok_to_ids_by_split["train"].get(t, [])
+            val_ids = cif_tok_to_ids_by_split["val"].get(t, [])
+            test_ids = cif_tok_to_ids_by_split["test"].get(t, [])
+            issues.add_leak_hash_line(
+                f"{name} CIF  {t}  splits={pairs}  "
+                f"train={_short_ids(train_ids)}  val={_short_ids(val_ids)}  test={_short_ids(test_ids)}"
+            )
 
     # 3) STRUCTURE hash overlap (tolerant canonicalization; controlled by symprec/decimals)
     bad = 0
     total = 0
-
     struct_tokens_by_split: Dict[str, Set[str]] = {"train": set(), "val": set(), "test": set()}
+    struct_tok_to_ids_by_split: Dict[str, Dict[str, List[str]]] = {"train": {}, "val": {}, "test": {}}
+
     for sp, mp in maps.items():
-        hs = set()
-        for cif in mp.values():
+        hs: Set[str] = set()
+        tok_to_ids: Dict[str, List[str]] = {}
+        for mid, cif in mp.items():
             total += 1
             h = structure_hash_from_cif(_norm_cif_text(cif), symprec, angle_tolerance, decimals, issues)
             if h is None:
                 bad += 1
                 continue
             hs.add(h)
+            tok_to_ids.setdefault(h, []).append(mid)
         struct_tokens_by_split[sp] = hs
+        struct_tok_to_ids_by_split[sp] = _invert_index(tok_to_ids)
 
     if bad > 0:
         warn(f"{name}: structure-hash parse failures: {bad}/{total} (skipped for STRUCTURE hash overlap checks)")
@@ -401,9 +434,16 @@ def leakage_check_cdvae_flowmm(
         for pair, toks in struct_pair_to.items():
             for t in toks:
                 tok_to_pairs.setdefault(t, []).append(pair)
+
         for t in sorted(tok_to_pairs.keys()):
             pairs = ",".join(sorted(tok_to_pairs[t]))
-            issues.add_leak_hash_line(f"{name} STRC {t}  splits={pairs}")
+            train_ids = struct_tok_to_ids_by_split["train"].get(t, [])
+            val_ids = struct_tok_to_ids_by_split["val"].get(t, [])
+            test_ids = struct_tok_to_ids_by_split["test"].get(t, [])
+            issues.add_leak_hash_line(
+                f"{name} STRC {t}  splits={pairs}  "
+                f"train={_short_ids(train_ids)}  val={_short_ids(val_ids)}  test={_short_ids(test_ids)}"
+            )
 
     if not (cif_union or struct_union) and all(
         (ids.get(a, set()) & ids.get(b, set()) == set()) for a, b in _overlap_pairs()
@@ -416,7 +456,6 @@ def leakage_check_cdvae_flowmm(
 def assert_no_dups(label: str, ids: Sequence[str], issues: IssueLog) -> None:
     d = _dups(ids)
     if d:
-        # note: d contains repeated items; count of duplicates = len(d)
         uniq = sorted(list(set(d)))
         issues.add_fail(f"{label}: duplicates within split: {len(d)} (unique duplicated IDs: {len(uniq)})")
 
