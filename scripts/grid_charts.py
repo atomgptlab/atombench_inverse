@@ -243,7 +243,7 @@ def plot_dataset_grid(tag: str,
     # single legend (clear & compact)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     if handles:
-        leg = axes[0, 0].legend(handles, labels, loc="upper center", frameon=True, fontsize=12)
+        leg = axes[0, 0].legend(handles, labels, loc="lower right", frameon=True, fontsize=12)
         leg.get_frame().set_alpha(0.95)
         leg.get_frame().set_facecolor("white")
         leg.get_frame().set_edgecolor("black")
