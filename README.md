@@ -1,10 +1,10 @@
 ![Project Banner](banner.png)
-# Atombench
+# AtomBench
 
 The rapid development of generative AI models for materials discovery has created a need for standardized benchmarks to evaluate their performance. In this work, we present $\textbf{AtomBench}$, a systematic benchmarking framework that comparatively evaluates three representative generative architectures-AtomGPT (transformer-based), CDVAE (diffusion variational autoencoder), and FlowMM (Riemannian flow matching)-for inverse crystal structure design. We train and evaluate these models on two high-quality DFT superconductivity datasets: JARVIS Supercon-3D and Alexandria DS-A/B, comprising over 9,000 structures with computed electron-phonon coupling properties.
 
 ## Installation Instructions
-### [Click for an Installation Demonstration in Google Colab](https://github.com/crhysc/jarvis-tools-notebooks/blob/master/atombench_example.ipynb)
+### [Tutorial in Google Colab](https://github.com/crhysc/jarvis-tools-notebooks/blob/master/atombench_example.ipynb)
 
 #### Step 1: Confirm operating system, workload manager, and Python package manager
 This repo is built for Linux-based High-Performance Computing (HPC) clusters that use the SLURM workload manager and provide a CUDA 11.8 module. It will not run on MacOS devices, Windows devices, and non-SLURM HPC clusters. A valid `conda` installation is also required, and it must have the capacity to be initialized using the `conda` shell integration hook via the following command:
